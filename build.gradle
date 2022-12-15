@@ -1,0 +1,40 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+}
+
+allprojects {
+    apply plugin: 'java'
+
+    repositories {
+        maven { url 'https://mvn.exceptionflug.de/repository/exceptionflug-public/' }
+        mavenCentral()
+    }
+
+    dependencies {
+        compileOnly 'dev.simplix:protocolize-api:2.2.3'
+        compileOnly 'org.jetbrains:annotations:23.0.0'
+    }
+
+    compileJava {
+        options.encoding = 'UTF-8'
+    }
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation project(':bungee')
+    implementation project(':velocity')
+}
+
+jar {
+    enabled = false
+    dependsOn (shadowJar)
+}
+
+shadowJar {
+    archiveClassifier.set('')
+}

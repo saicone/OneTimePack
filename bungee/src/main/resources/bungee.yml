@@ -1,0 +1,6 @@
+name: OneTimePack
+main: com.saicone.onetimepack.BungeePlugin
+version: ${version}
+description: Send the same resource pack only one time
+author: Rubenicos
+depends: [Protocolize]
