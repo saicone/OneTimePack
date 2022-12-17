@@ -134,6 +134,10 @@ public class ResourcePackSend extends AbstractPacket {
         }
     }
 
+    public ResourcePackSend copy() {
+        return new ResourcePackSend(url, hash, forced, hasPromptMessage, promptMessage);
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;

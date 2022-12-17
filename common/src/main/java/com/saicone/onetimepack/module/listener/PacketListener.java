@@ -1,5 +1,6 @@
 package com.saicone.onetimepack.module.listener;
 
+import com.saicone.onetimepack.ProxyResourcePack;
 import dev.simplix.protocolize.api.Direction;
 import dev.simplix.protocolize.api.Protocolize;
 import dev.simplix.protocolize.api.listener.AbstractPacketListener;
@@ -41,10 +42,14 @@ public class PacketListener {
         if (!listener.isRegistered()) {
             listener.setRegistered(true);
             Protocolize.listenerProvider().registerListener(listener);
+            ProxyResourcePack.log(4, "The listener of " + listener.type().getSimpleName() + " was registered in direction " + listener.direction().name());
+        } else {
+            ProxyResourcePack.log(4, "The listener of " + listener.type().getSimpleName() + " is registered in direction " + listener.direction().name());
         }
     }
 
     public void unregister() {
+        ProxyResourcePack.log(4, "The listeners was unregistered");
         for (Map.Entry<ListenerKey, Listener<?>> entry : listeners.entrySet()) {
             if (entry.getValue().isRegistered()) {
                 Protocolize.listenerProvider().unregisterListener(entry.getValue());
@@ -205,7 +210,9 @@ public class PacketListener {
 
         @Override
         public void packetSend(PacketSendEvent<T> event) {
-            onSend.accept(event);
+            if (onSend != null) {
+                onSend.accept(event);
+            }
         }
     }
 }

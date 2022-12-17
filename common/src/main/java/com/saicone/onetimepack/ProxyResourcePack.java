@@ -1,6 +1,7 @@
 package com.saicone.onetimepack;
 
 import com.saicone.onetimepack.core.PacketHandler;
+import com.saicone.onetimepack.module.TinySettings;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -8,6 +9,8 @@ import java.io.File;
 public class ProxyResourcePack {
 
     private static ProxyResourcePack instance;
+    public static TinySettings SETTINGS = new TinySettings("settings.yml");
+    private static int logLevel = 2;
 
     private final Provider provider;
     private final PacketHandler packetHandler;
@@ -15,6 +18,16 @@ public class ProxyResourcePack {
     @NotNull
     public static ProxyResourcePack get() {
         return instance;
+    }
+
+    public static int getLogLevel() {
+        return logLevel;
+    }
+
+    public static void log(int level, @NotNull String s) {
+        if (logLevel >= level) {
+            get().getProvider().log(level, s);
+        }
     }
 
     public ProxyResourcePack(@NotNull Provider provider) {
@@ -27,6 +40,8 @@ public class ProxyResourcePack {
     }
 
     public void onLoad() {
+        SETTINGS.load(provider.getPluginFolder());
+        logLevel = SETTINGS.getInt("Plugin.LogLevel", 2);
         packetHandler.onLoad();
     }
 

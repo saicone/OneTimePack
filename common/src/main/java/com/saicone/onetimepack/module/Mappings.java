@@ -41,24 +41,24 @@ public class Mappings {
         // Load mappings file
         final JsonObject jsonFile = loadPluginFile();
         if (jsonFile == null) {
-            log(1, "Build-in mappings will be used by default");
+            ProxyResourcePack.log(1, "Build-in mappings will be used by default");
             return null;
         }
 
         // Check external
         final JsonObject external = jsonFile.getAsJsonObject("external");
         if (external == null || !external.get("enabled").getAsBoolean()) {
-            log(3, "Mappings from " + fileName + " file will be used");
+            ProxyResourcePack.log(3, "Mappings from " + fileName + " file will be used");
             return load(jsonFile);
         }
 
         // Load mappings from url
         final JsonObject jsonUrl = loadUrlFile(external.get("url").getAsString());
         if (jsonUrl == null) {
-            log(1, "Mappings from " + fileName + " file will be used instead");
+            ProxyResourcePack.log(1, "Mappings from " + fileName + " file will be used instead");
             return load(jsonFile);
         }
-        log(3, "Mappings from url will be used");
+        ProxyResourcePack.log(3, "Mappings from url will be used");
         return load(jsonUrl);
     }
 
@@ -66,7 +66,7 @@ public class Mappings {
     private Map<String, List<ProtocolIdMapping>> load(@NotNull JsonObject json) {
         final JsonObject packets = json.getAsJsonObject("packet");
         if (packets == null) {
-            log(1, "The provided json file doesn't contains 'packet' configuration");
+            ProxyResourcePack.log(1, "The provided json file doesn't contains 'packet' configuration");
             return null;
         }
         final Map<String, List<ProtocolIdMapping>> mappings = new HashMap<>();
@@ -79,23 +79,24 @@ public class Mappings {
                     int start = ProtocolVersion.getProtocol(version.length >= 1 ? version[0].trim() : s);
                     int end = version.length >= 2 ? ProtocolVersion.getProtocol(version[1].trim()) : start;
                     if (start < 0 || end < 0) {
-                        log(1, "The parameter '" + ver + "' inside '" + s + "' is not a valid version range for " + name + " packet, so will be ignored");
+                        ProxyResourcePack.log(1, "The parameter '" + ver + "' inside '" + s + "' is not a valid version range for " + name + " packet, so will be ignored");
                         continue;
                     }
 
                     int id = packet.get(s).getAsInt();
                     list.add(AbstractProtocolMapping.rangedIdMapping(start, end, id));
+                    ProxyResourcePack.log(3, "Added ranged mapping for " + name + ": " + start + ',' + end + ',' + id);
                 }
             }
             if (list.isEmpty()) {
-                log(2, "The packet '" + name + "' has empty mappings");
+                ProxyResourcePack.log(2, "The packet '" + name + "' has empty mappings");
             } else {
-                log(3, "Loaded " + list.size() + " mappings for " + name + " packet");
+                ProxyResourcePack.log(3, "Loaded " + list.size() + " mappings for " + name + " packet");
             }
             mappings.put(name, list);
         }
         if (mappings.isEmpty()) {
-            log(2, "The provided json file doesn't have any mapping");
+            ProxyResourcePack.log(2, "The provided json file doesn't have any mapping");
         }
         return mappings;
     }
@@ -109,13 +110,13 @@ public class Mappings {
                 if (!lines.trim().isEmpty()) {
                     return JsonParser.parseString(lines).getAsJsonObject();
                 } else {
-                    log(1, "The file " + fileName + " is empty");
+                    ProxyResourcePack.log(1, "The file " + fileName + " is empty");
                 }
             } else {
-                log(1, "Cannot read " + fileName + " file");
+                ProxyResourcePack.log(1, "Cannot read " + fileName + " file");
             }
         } else {
-            log(1, "Cannot load " + fileName + " file from plugin JAR");
+            ProxyResourcePack.log(1, "Cannot load " + fileName + " file from plugin JAR");
         }
         return null;
     }
@@ -129,21 +130,17 @@ public class Mappings {
                     if (!lines.trim().isEmpty()) {
                         return JsonParser.parseString(lines).getAsJsonObject();
                     } else {
-                        log(1, "The url data is empty");
+                        ProxyResourcePack.log(1, "The url data is empty");
                     }
                 } else {
-                    log(1, "Cannot retrieve data from mappings url");
+                    ProxyResourcePack.log(1, "Cannot retrieve data from mappings url");
                 }
             } else {
-                log(1, "The provided URL cannot be empty");
+                ProxyResourcePack.log(1, "The provided URL cannot be empty");
             }
         } else {
-            log(1, "The file " + fileName + " doesn't have any configured URL");
+            ProxyResourcePack.log(1, "The file " + fileName + " doesn't have any configured URL");
         }
         return null;
-    }
-
-    private static void log(int level, @NotNull String s) {
-        ProxyResourcePack.get().getProvider().log(level, s);
     }
 }

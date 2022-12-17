@@ -1,0 +1,26 @@
+# Plugin related configuration
+Plugin:
+  # Log level to see messages in console:
+  # 0 = disabled
+  # 1 = errors
+  # 2 = 1 + warnings
+  # 3 = 2 + information
+  # 4 = 3 + debug messages
+  LogLevel: 2
+
+# Resource pack configuration
+Pack:
+  # Pack comparator:
+  # URL    = Compare by download URL
+  # HASH   = Compare by 40 char hash ID
+  # PROMPT = Compare using the prompt message (Only available for MC +1.17)
+  # ALL    = Check is the two resource packs are equals
+  # ANY    = Don't compare, just cancel any other pack sending to player
+  Comparator: HASH
+  # Default pack status to send if player don't have any status saved:
+  # 0 = Successfully loaded
+  # 1 = Declined
+  # 2 = Failed download
+  # 3 = Accepted
+  # Set to -1 to disable
+  Default-Status: -1
