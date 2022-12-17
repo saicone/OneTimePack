@@ -2,7 +2,7 @@ package com.saicone.onetimepack.module;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.saicone.onetimepack.ProxyResourcePack;
+import com.saicone.onetimepack.OneTimePack;
 import com.saicone.onetimepack.util.FileUtils;
 import com.saicone.onetimepack.util.ProtocolVersion;
 import dev.simplix.protocolize.api.mapping.AbstractProtocolMapping;
@@ -41,24 +41,24 @@ public class Mappings {
         // Load mappings file
         final JsonObject jsonFile = loadPluginFile();
         if (jsonFile == null) {
-            ProxyResourcePack.log(1, "Build-in mappings will be used by default");
+            OneTimePack.log(1, "Build-in mappings will be used by default");
             return null;
         }
 
         // Check external
         final JsonObject external = jsonFile.getAsJsonObject("external");
         if (external == null || !external.get("enabled").getAsBoolean()) {
-            ProxyResourcePack.log(3, "Mappings from " + fileName + " file will be used");
+            OneTimePack.log(3, "Mappings from " + fileName + " file will be used");
             return load(jsonFile);
         }
 
         // Load mappings from url
         final JsonObject jsonUrl = loadUrlFile(external.get("url").getAsString());
         if (jsonUrl == null) {
-            ProxyResourcePack.log(1, "Mappings from " + fileName + " file will be used instead");
+            OneTimePack.log(1, "Mappings from " + fileName + " file will be used instead");
             return load(jsonFile);
         }
-        ProxyResourcePack.log(3, "Mappings from url will be used");
+        OneTimePack.log(3, "Mappings from url will be used");
         return load(jsonUrl);
     }
 
@@ -66,7 +66,7 @@ public class Mappings {
     private Map<String, List<ProtocolIdMapping>> load(@NotNull JsonObject json) {
         final JsonObject packets = json.getAsJsonObject("packet");
         if (packets == null) {
-            ProxyResourcePack.log(1, "The provided json file doesn't contains 'packet' configuration");
+            OneTimePack.log(1, "The provided json file doesn't contains 'packet' configuration");
             return null;
         }
         final Map<String, List<ProtocolIdMapping>> mappings = new HashMap<>();
@@ -79,24 +79,24 @@ public class Mappings {
                     int start = ProtocolVersion.getProtocol(version.length >= 1 ? version[0].trim() : s);
                     int end = version.length >= 2 ? ProtocolVersion.getProtocol(version[1].trim()) : start;
                     if (start < 0 || end < 0) {
-                        ProxyResourcePack.log(1, "The parameter '" + ver + "' inside '" + s + "' is not a valid version range for " + name + " packet, so will be ignored");
+                        OneTimePack.log(1, "The parameter '" + ver + "' inside '" + s + "' is not a valid version range for " + name + " packet, so will be ignored");
                         continue;
                     }
 
                     int id = packet.get(s).getAsInt();
                     list.add(AbstractProtocolMapping.rangedIdMapping(start, end, id));
-                    ProxyResourcePack.log(3, "Added ranged mapping for " + name + ": " + start + ',' + end + ',' + id);
+                    OneTimePack.log(3, "Added ranged mapping for " + name + ": " + start + ',' + end + ',' + id);
                 }
             }
             if (list.isEmpty()) {
-                ProxyResourcePack.log(2, "The packet '" + name + "' has empty mappings");
+                OneTimePack.log(2, "The packet '" + name + "' has empty mappings");
             } else {
-                ProxyResourcePack.log(3, "Loaded " + list.size() + " mappings for " + name + " packet");
+                OneTimePack.log(3, "Loaded " + list.size() + " mappings for " + name + " packet");
             }
             mappings.put(name, list);
         }
         if (mappings.isEmpty()) {
-            ProxyResourcePack.log(2, "The provided json file doesn't have any mapping");
+            OneTimePack.log(2, "The provided json file doesn't have any mapping");
         }
         return mappings;
     }
@@ -110,13 +110,13 @@ public class Mappings {
                 if (!lines.trim().isEmpty()) {
                     return JsonParser.parseString(lines).getAsJsonObject();
                 } else {
-                    ProxyResourcePack.log(1, "The file " + fileName + " is empty");
+                    OneTimePack.log(1, "The file " + fileName + " is empty");
                 }
             } else {
-                ProxyResourcePack.log(1, "Cannot read " + fileName + " file");
+                OneTimePack.log(1, "Cannot read " + fileName + " file");
             }
         } else {
-            ProxyResourcePack.log(1, "Cannot load " + fileName + " file from plugin JAR");
+            OneTimePack.log(1, "Cannot load " + fileName + " file from plugin JAR");
         }
         return null;
     }
@@ -130,16 +130,16 @@ public class Mappings {
                     if (!lines.trim().isEmpty()) {
                         return JsonParser.parseString(lines).getAsJsonObject();
                     } else {
-                        ProxyResourcePack.log(1, "The url data is empty");
+                        OneTimePack.log(1, "The url data is empty");
                     }
                 } else {
-                    ProxyResourcePack.log(1, "Cannot retrieve data from mappings url");
+                    OneTimePack.log(1, "Cannot retrieve data from mappings url");
                 }
             } else {
-                ProxyResourcePack.log(1, "The provided URL cannot be empty");
+                OneTimePack.log(1, "The provided URL cannot be empty");
             }
         } else {
-            ProxyResourcePack.log(1, "The file " + fileName + " doesn't have any configured URL");
+            OneTimePack.log(1, "The file " + fileName + " doesn't have any configured URL");
         }
         return null;
     }

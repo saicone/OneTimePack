@@ -1,7 +1,7 @@
 package com.saicone.onetimepack.util;
 
 import com.google.common.base.Suppliers;
-import com.saicone.onetimepack.ProxyResourcePack;
+import com.saicone.onetimepack.OneTimePack;
 import dev.simplix.protocolize.api.util.ProtocolVersions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,7 +26,7 @@ public class ProtocolVersion {
             }
         }
         map.put("latest", ProtocolVersions.MINECRAFT_LATEST);
-        map.put("proxy", ProxyResourcePack.get().getProvider().getProxyProtocol());
+        map.put("proxy", OneTimePack.get().getProvider().getProxyProtocol());
         return map;
     });
 

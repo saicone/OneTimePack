@@ -6,9 +6,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 
-public class ProxyResourcePack {
+public class OneTimePack {
 
-    private static ProxyResourcePack instance;
+    private static OneTimePack instance;
     public static TinySettings SETTINGS = new TinySettings("settings.yml");
     private static int logLevel = 2;
 
@@ -16,7 +16,7 @@ public class ProxyResourcePack {
     private final PacketHandler packetHandler;
 
     @NotNull
-    public static ProxyResourcePack get() {
+    public static OneTimePack get() {
         return instance;
     }
 
@@ -30,9 +30,9 @@ public class ProxyResourcePack {
         }
     }
 
-    public ProxyResourcePack(@NotNull Provider provider) {
+    public OneTimePack(@NotNull Provider provider) {
         if (instance != null) {
-            throw new RuntimeException(ProxyResourcePack.class.getSimpleName() + " is already initialized");
+            throw new RuntimeException(OneTimePack.class.getSimpleName() + " is already initialized");
         }
         instance = this;
         this.provider = provider;

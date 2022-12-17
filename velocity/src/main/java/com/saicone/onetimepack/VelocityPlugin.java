@@ -17,7 +17,7 @@ import java.io.File;
 import java.nio.file.Path;
 
 @Plugin(id = "onetimepack", name = "OneTimePack", description = "Send the same resource pack only one time", version = "${version}", authors = "Rubenicos", dependencies = {@Dependency(id = "protocolize")})
-public class VelocityPlugin implements ProxyResourcePack.Provider {
+public class VelocityPlugin implements OneTimePack.Provider {
 
     private static VelocityPlugin instance;
 
@@ -31,7 +31,7 @@ public class VelocityPlugin implements ProxyResourcePack.Provider {
 
     @Inject
     public VelocityPlugin(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
-        new ProxyResourcePack(this);
+        new OneTimePack(this);
         instance = this;
         this.proxy = server;
         this.logger = logger;
@@ -40,18 +40,18 @@ public class VelocityPlugin implements ProxyResourcePack.Provider {
 
     @Subscribe
     public void onEnable(ProxyInitializeEvent event) {
-        ProxyResourcePack.get().onLoad();
-        ProxyResourcePack.get().onEnable();
+        OneTimePack.get().onLoad();
+        OneTimePack.get().onEnable();
     }
 
     @Subscribe
     public void onDisable(ProxyShutdownEvent event) {
-        ProxyResourcePack.get().onDisable();
+        OneTimePack.get().onDisable();
     }
 
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
-        ProxyResourcePack.get().getPacketHandler().clear(event.getPlayer().getUniqueId());
+        OneTimePack.get().getPacketHandler().clear(event.getPlayer().getUniqueId());
     }
 
     public ProxyServer getProxy() {

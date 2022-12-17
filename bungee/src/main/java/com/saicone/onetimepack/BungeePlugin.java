@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.util.logging.Level;
 
-public class BungeePlugin extends Plugin implements Listener, ProxyResourcePack.Provider {
+public class BungeePlugin extends Plugin implements Listener, OneTimePack.Provider {
 
     private static BungeePlugin instance;
 
@@ -19,29 +19,29 @@ public class BungeePlugin extends Plugin implements Listener, ProxyResourcePack.
     }
 
     public BungeePlugin() {
-        new ProxyResourcePack(this);
+        new OneTimePack(this);
         instance = this;
     }
 
     @Override
     public void onLoad() {
-        ProxyResourcePack.get().onLoad();
+        OneTimePack.get().onLoad();
     }
 
     @Override
     public void onEnable() {
-        ProxyResourcePack.get().onEnable();
+        OneTimePack.get().onEnable();
         this.getProxy().getPluginManager().registerListener(this, this);
     }
 
     @Override
     public void onDisable() {
-        ProxyResourcePack.get().onDisable();
+        OneTimePack.get().onDisable();
     }
 
     @EventHandler
     public void onDisconnect(PlayerDisconnectEvent event) {
-        ProxyResourcePack.get().getPacketHandler().clear(event.getPlayer().getUniqueId());
+        OneTimePack.get().getPacketHandler().clear(event.getPlayer().getUniqueId());
     }
 
     @Override
