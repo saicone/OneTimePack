@@ -1,9 +1,11 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
 }
 
-allprojects {
+subprojects {
     apply plugin: 'java'
+    apply plugin: 'com.github.johnrengelman.shadow'
 
     repositories {
         maven { url 'https://mvn.exceptionflug.de/repository/exceptionflug-public/' }
@@ -11,8 +13,8 @@ allprojects {
     }
 
     dependencies {
-        compileOnly 'dev.simplix:protocolize-api:2.2.3'
-        compileOnly 'org.jetbrains:annotations:23.0.0'
+        compileOnly 'dev.simplix:protocolize-api:2.3.0'
+        compileOnly 'org.jetbrains:annotations:24.0.1'
     }
 
     compileJava {
@@ -23,18 +25,18 @@ allprojects {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-}
 
-dependencies {
-    implementation project(':bungee')
-    implementation project(':velocity')
+    jar {
+        dependsOn (shadowJar)
+    }
+
+    shadowJar {
+        archiveBaseName.set(rootProject.name + '-' + project.name)
+        archiveClassifier.set('')
+        destinationDirectory.set(file(rootProject.buildDir.path + '/libs'))
+    }
 }
 
 jar {
     enabled = false
-    dependsOn (shadowJar)
-}
-
-shadowJar {
-    archiveClassifier.set('')
 }
