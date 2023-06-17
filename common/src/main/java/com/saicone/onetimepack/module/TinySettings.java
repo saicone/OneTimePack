@@ -88,6 +88,7 @@ public class TinySettings {
     }
 
     public void load(@NotNull File folder) {
+        paths.clear();
         final File file = FileUtils.saveResource(folder, fileName, false);
         if (file != null) {
             try {

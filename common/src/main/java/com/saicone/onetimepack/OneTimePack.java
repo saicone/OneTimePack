@@ -45,6 +45,12 @@ public class OneTimePack {
         packetHandler.onLoad();
     }
 
+    public void onReload() {
+        SETTINGS.load(provider.getPluginFolder());
+        logLevel = SETTINGS.getInt("Plugin.LogLevel", 2);
+        packetHandler.onReload();
+    }
+
     public void onEnable() {
         packetHandler.onEnable();
     }

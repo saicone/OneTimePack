@@ -35,6 +35,10 @@ public class PacketHandler {
         final Map<String, List<ProtocolIdMapping>> map = mappings.load();
         register(map, ResourcePackSend.class, ResourcePackSend::register);
         register(map, ResourcePackStatus.class, ResourcePackStatus::register);
+        onReload();
+    }
+
+    public void onReload() {
         final String packComparator = OneTimePack.SETTINGS.getString("Pack.Comparator", "HASH");
         switch (packComparator.toUpperCase()) {
             case "URL":
