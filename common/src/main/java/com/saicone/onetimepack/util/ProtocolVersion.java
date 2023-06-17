@@ -19,13 +19,12 @@ public class ProtocolVersion {
             final String name = field.getName().toUpperCase();
             if (name.startsWith("MINECRAFT_")) {
                 try {
-                    map.put(name.substring(10).replace('_', '.'), (int) field.get(null));
+                    map.put(name.substring(10).replace('_', '.').toLowerCase(), (int) field.get(null));
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
                 }
             }
         }
-        map.put("latest", ProtocolVersions.MINECRAFT_LATEST);
         map.put("proxy", OneTimePack.get().getProvider().getProxyProtocol());
         return map;
     });
@@ -38,21 +37,21 @@ public class ProtocolVersion {
                 return Integer.parseInt(String.valueOf(object));
             } catch (NumberFormatException ignored) { }
         } else if (object instanceof String) {
-            final String s = ((String) object).trim();
+            final String s = ((String) object).trim().toLowerCase();
             if (s.indexOf('.') > 0) {
-                return getProtocol(s);
+                return getProtocol(s, -1);
             }
             try {
                 return Integer.parseInt(s);
             } catch (NumberFormatException e) {
-                return getProtocol(s);
+                return getProtocol(s, -1);
             }
         }
         return -1;
     }
 
-    public static int getProtocol(@NotNull String s) {
-        return getProtocols().getOrDefault(s, -1);
+    public static int getProtocol(@NotNull String s, int def) {
+        return getProtocols().getOrDefault(s, def);
     }
 
     @NotNull

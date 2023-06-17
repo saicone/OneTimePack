@@ -76,8 +76,8 @@ public class Mappings {
             for (String s : packet.keySet()) {
                 for (String ver : s.split("\\|")) {
                     String[] version = ver.split("-");
-                    int start = ProtocolVersion.getProtocol(version.length >= 1 ? version[0].trim() : s);
-                    int end = version.length >= 2 ? ProtocolVersion.getProtocol(version[1].trim()) : start;
+                    int start = ProtocolVersion.getProtocol(version.length >= 1 ? version[0] : s);
+                    int end = version.length >= 2 ? ProtocolVersion.getProtocol(version[1]) : start;
                     if (start < 0 || end < 0) {
                         OneTimePack.log(1, "The parameter '" + ver + "' inside '" + s + "' is not a valid version range for " + name + " packet, so will be ignored");
                         continue;
