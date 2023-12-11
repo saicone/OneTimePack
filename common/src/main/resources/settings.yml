@@ -11,16 +11,23 @@ Plugin:
 # Resource pack configuration
 Pack:
   # Pack comparator:
+  # UUID   = Compare by unique ID (Only available for MC +1.20.3)
   # URL    = Compare by download URL
   # HASH   = Compare by 40 char hash ID
   # PROMPT = Compare using the prompt message (Only available for MC +1.17)
   # ALL    = Check is the two resource packs are equals
   # ANY    = Don't compare, just cancel any other pack sending to player
-  Comparator: HASH
+  # Use multiple comparisons with 'AND', or optional with 'OR'
+  # Add '!' to compare object only if it's not null
+  Comparator: !UUID OR HASH
   # Default pack status to send if player don't have any status saved:
-  # 0 = Successfully loaded
-  # 1 = Declined
-  # 2 = Failed download
-  # 3 = Accepted
-  # Set to -1 to disable
-  Default-Status: -1
+  # SUCCESS_DOWNLOAD = The pack was successfully downloaded, and it's active by the client
+  # DECLINED         = The pack was declined by the player
+  # FAILED_DOWNLOAD  = The client cannot download the pack correctly
+  # ACCEPTED         = The pack is currently downloading by the client
+  # DOWNLOADED       = The pack is already downloaded by the client (this status only appear if the client is on configuration screen)
+  # INVALID_URL      = The pack URL cannot be used to download the resource pack
+  # FAILED_RELOAD    = The pack was downloaded by the client, but cannot be reapplied
+  # DISCARDED        = The pack is already downloaded, but was ignored
+  # Set to 'none' to disable
+  Default-Status: none

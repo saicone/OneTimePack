@@ -21,6 +21,8 @@ public class Mappings {
     private final File folder;
     private final String fileName;
 
+    private Map<String, Map<String, List<ProtocolIdMapping>>> loaded = new HashMap<>();
+
     public Mappings(@NotNull File folder, @NotNull String fileName) {
         this.folder = folder;
         this.fileName = fileName;
@@ -37,36 +39,71 @@ public class Mappings {
     }
 
     @Nullable
-    public Map<String, List<ProtocolIdMapping>> load() {
+    public List<ProtocolIdMapping> getMappings(@NotNull String name, @NotNull String protocol) {
+        if (loaded.containsKey(name)) {
+            return loaded.get(name).get(protocol);
+        } else {
+            return null;
+        }
+    }
+
+    public boolean contains(@NotNull String name) {
+        return loaded.containsKey(name);
+    }
+
+    public void load() {
         // Load mappings file
         final JsonObject jsonFile = loadPluginFile();
         if (jsonFile == null) {
             OneTimePack.log(1, "Build-in mappings will be used by default");
-            return null;
+            loaded = new HashMap<>();
+            return;
         }
 
         // Check external
         final JsonObject external = jsonFile.getAsJsonObject("external");
         if (external == null || !external.get("enabled").getAsBoolean()) {
             OneTimePack.log(3, "Mappings from " + fileName + " file will be used");
-            return load(jsonFile);
+            loaded = load(jsonFile);
+            return;
         }
 
         // Load mappings from url
         final JsonObject jsonUrl = loadUrlFile(external.get("url").getAsString());
         if (jsonUrl == null) {
             OneTimePack.log(1, "Mappings from " + fileName + " file will be used instead");
-            return load(jsonFile);
+            loaded = load(jsonFile);
+            return;
         }
         OneTimePack.log(3, "Mappings from url will be used");
-        return load(jsonUrl);
+        loaded = load(jsonUrl);
+    }
+
+    @NotNull
+    private Map<String, Map<String, List<ProtocolIdMapping>>> load(@NotNull JsonObject json) {
+        final Map<String, Map<String, List<ProtocolIdMapping>>> loaded = new HashMap<>();
+        for (String s : json.keySet()) {
+            final String key = s.trim().toLowerCase();
+            if (!key.startsWith("packet")) {
+                continue;
+            }
+            final Map<String, List<ProtocolIdMapping>> mappings = loadMappings(json.getAsJsonObject(s));
+            if (mappings == null || mappings.isEmpty()) {
+                OneTimePack.log(1, "The provided json file doesn't contains mappings on '" + s + "' configuration");
+                continue;
+            }
+            final String[] split = key.split("-", 2);
+            final String protocol = split.length > 1 ? split[1] : "play";
+            for (Map.Entry<String, List<ProtocolIdMapping>> entry : mappings.entrySet()) {
+                loaded.computeIfAbsent(entry.getKey(), __ -> new HashMap<>()).put(protocol, entry.getValue());
+            }
+        }
+        return loaded;
     }
 
     @Nullable
-    private Map<String, List<ProtocolIdMapping>> load(@NotNull JsonObject json) {
-        final JsonObject packets = json.getAsJsonObject("packet");
+    private Map<String, List<ProtocolIdMapping>> loadMappings(@Nullable JsonObject packets) {
         if (packets == null) {
-            OneTimePack.log(1, "The provided json file doesn't contains 'packet' configuration");
             return null;
         }
         final Map<String, List<ProtocolIdMapping>> mappings = new HashMap<>();

@@ -6,7 +6,6 @@ import dev.simplix.protocolize.api.Protocolize;
 import dev.simplix.protocolize.api.listener.AbstractPacketListener;
 import dev.simplix.protocolize.api.listener.PacketReceiveEvent;
 import dev.simplix.protocolize.api.listener.PacketSendEvent;
-import dev.simplix.protocolize.api.packet.AbstractPacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,21 +17,21 @@ public class PacketListener {
 
     private final Map<ListenerKey, Listener<?>> listeners = new HashMap<>();
 
-    public <T extends AbstractPacket> void registerReceive(@NotNull Class<T> packet, @NotNull Direction direction, @NotNull Consumer<PacketReceiveEvent<T>> consumer) {
+    public <T> void registerReceive(@NotNull Class<T> packet, @NotNull Direction direction, @NotNull Consumer<PacketReceiveEvent<T>> consumer) {
         registerReceive(packet, direction, 0, consumer);
     }
 
-    public <T extends AbstractPacket> void registerReceive(@NotNull Class<T> packet, @NotNull Direction direction, int priority, @NotNull Consumer<PacketReceiveEvent<T>> consumer) {
+    public <T> void registerReceive(@NotNull Class<T> packet, @NotNull Direction direction, int priority, @NotNull Consumer<PacketReceiveEvent<T>> consumer) {
         final Listener<T> listener = computeListener(packet, direction, priority);
         listener.setOnReceive(consumer);
         register(listener);
     }
 
-    public <T extends AbstractPacket> void registerSend(@NotNull Class<T> packet, @NotNull Direction direction, @NotNull Consumer<PacketSendEvent<T>> consumer) {
+    public <T> void registerSend(@NotNull Class<T> packet, @NotNull Direction direction, @NotNull Consumer<PacketSendEvent<T>> consumer) {
         registerSend(packet, direction, 0, consumer);
     }
 
-    public <T extends AbstractPacket> void registerSend(@NotNull Class<T> packet, @NotNull Direction direction, int priority, @NotNull Consumer<PacketSendEvent<T>> consumer) {
+    public <T> void registerSend(@NotNull Class<T> packet, @NotNull Direction direction, int priority, @NotNull Consumer<PacketSendEvent<T>> consumer) {
         final Listener<T> listener = computeListener(packet, direction, priority);
         listener.setOnSend(consumer);
         register(listener);
