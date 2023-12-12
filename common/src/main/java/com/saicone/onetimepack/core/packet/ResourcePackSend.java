@@ -8,8 +8,11 @@ import dev.simplix.protocolize.api.mapping.AbstractProtocolMapping;
 import dev.simplix.protocolize.api.mapping.ProtocolIdMapping;
 import dev.simplix.protocolize.api.packet.AbstractPacket;
 import dev.simplix.protocolize.api.util.ProtocolUtil;
+import dev.simplix.protocolize.data.util.NamedBinaryTagUtil;
 import io.netty.buffer.ByteBuf;
+import net.querz.nbt.tag.Tag;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -93,9 +96,9 @@ public class ResourcePackSend extends AbstractPacket {
                 return (pack1, pack2) -> Objects.equals(pack1.getHash(), pack2.getHash());
             case "PROMPT":
                 if (nonNull) {
-                    return (pack1, pack2) -> pack1.getPromptMessage() != null && pack2.getPromptMessage() != null && pack1.getPromptMessage().equals(pack2.getPromptMessage());
+                    return (pack1, pack2) -> pack1.getPrompt() != null && pack2.getPrompt() != null && pack1.getPrompt().equals(pack2.getPrompt());
                 }
-                return (pack1, pack2) -> Objects.equals(pack1.getPromptMessage(), pack2.getPromptMessage());
+                return (pack1, pack2) -> Objects.equals(pack1.getPrompt(), pack2.getPrompt());
             case "ALL":
                 return ResourcePackSend::equals;
             case "ANY":
@@ -106,34 +109,47 @@ public class ResourcePackSend extends AbstractPacket {
         }
     }
 
-    // Added in 1.20.3
-    private UUID uniqueId;
+    private UUID uniqueId; // Added in 1.20.3
     private String url;
     private String hash;
 
     // Added in 1.17
     private boolean forced;
     private boolean hasPromptMessage;
-    private String promptMessage;
+    private String promptJson;
+    // Added in 1.20.3
+    private Tag<?> promptTag;
 
     public ResourcePackSend() {
     }
 
     public ResourcePackSend(String url, String hash) {
-        this(null, url, hash, false, false, null);
+        this.url = url;
+        this.hash = hash;
     }
 
-    public ResourcePackSend(String url, String hash, boolean forced, boolean hasPromptMessage, String promptMessage) {
-        this(null, url, hash, forced, hasPromptMessage, promptMessage);
+    public ResourcePackSend(UUID uniqueId, String url, String hash, boolean forced) {
+        this.uniqueId = uniqueId;
+        this.url = url;
+        this.hash = hash;
+        this.forced = forced;
     }
 
-    public ResourcePackSend(UUID uniqueId, String url, String hash, boolean forced, boolean hasPromptMessage, String promptMessage) {
+    public ResourcePackSend(String url, String hash, boolean forced, boolean hasPromptMessage, String promptJson) {
+        this.url = url;
+        this.hash = hash;
+        this.forced = forced;
+        this.hasPromptMessage = hasPromptMessage;
+        this.promptJson = promptJson;
+    }
+
+    public ResourcePackSend(UUID uniqueId, String url, String hash, boolean forced, boolean hasPromptMessage, Tag<?> promptTag) {
         this.uniqueId = uniqueId;
         this.url = url;
         this.hash = hash;
         this.forced = forced;
         this.hasPromptMessage = hasPromptMessage;
-        this.promptMessage = promptMessage;
+        this.promptTag = promptTag;
     }
 
     public UUID getUniqueId() {
@@ -148,8 +164,16 @@ public class ResourcePackSend extends AbstractPacket {
         return hash;
     }
 
-    public String getPromptMessage() {
-        return promptMessage;
+    public Object getPrompt() {
+        return promptJson != null ? promptJson : promptTag;
+    }
+
+    public String getPromptJson() {
+        return promptJson;
+    }
+
+    public Tag<?> getPromptTag() {
+        return promptTag;
     }
 
     public boolean isForced() {
@@ -180,9 +204,14 @@ public class ResourcePackSend extends AbstractPacket {
         this.hasPromptMessage = hasPromptMessage;
     }
 
-    public void setPromptMessage(String promptMessage) {
-        this.promptMessage = promptMessage;
-        this.hasPromptMessage = promptMessage != null;
+    public void setPromptJson(String promptJson) {
+        this.promptJson = promptJson;
+        this.hasPromptMessage = promptJson != null;
+    }
+
+    public void setPromptTag(Tag<?> promptTag) {
+        this.promptTag = promptTag;
+        this.hasPromptMessage = promptTag != null;
     }
 
     @Override
@@ -196,7 +225,18 @@ public class ResourcePackSend extends AbstractPacket {
             forced = buf.readBoolean();
             hasPromptMessage = buf.readBoolean();
             if (hasPromptMessage) {
-                promptMessage = ProtocolUtil.readString(buf);
+                if (protocol >= MINECRAFT_1_20_3) {
+                    try {
+                        promptTag = NamedBinaryTagUtil.readTag(buf, protocol);
+                    } catch (IOException e) {
+                        hasPromptMessage = false;
+                        if (OneTimePack.getLogLevel() >= 2) {
+                            e.printStackTrace();
+                        }
+                    }
+                } else {
+                    promptJson = ProtocolUtil.readString(buf);
+                }
             }
         } else {
             forced = false;
@@ -218,27 +258,58 @@ public class ResourcePackSend extends AbstractPacket {
             buf.writeBoolean(forced);
             buf.writeBoolean(hasPromptMessage);
             if (hasPromptMessage) {
-                ProtocolUtil.writeString(buf, promptMessage);
+                if (protocol >= MINECRAFT_1_20_3) {
+                    try {
+                        NamedBinaryTagUtil.writeTag(buf, promptTag, protocol);
+                    } catch (IOException e) {
+                        if (OneTimePack.getLogLevel() >= 2) {
+                            e.printStackTrace();
+                        }
+                    }
+                } else {
+                    ProtocolUtil.writeString(buf, promptJson);
+                }
             }
         }
     }
 
     public ResourcePackSend copy() {
-        return new ResourcePackSend(uniqueId, url, hash, forced, hasPromptMessage, promptMessage);
+        if (hasPromptMessage) {
+            if (promptJson == null) {
+                return new ResourcePackSend(uniqueId, url, hash, forced, true, promptTag);
+            } else {
+                return new ResourcePackSend(url, hash, forced, true, promptJson);
+            }
+        }
+        return new ResourcePackSend(uniqueId, url, hash, forced);
     }
 
     public ResourcePackSend.Play asPlay() {
         if (this instanceof ResourcePackSend.Play) {
             return (ResourcePackSend.Play) this;
         }
-        return new ResourcePackSend.Play(uniqueId, url, hash, forced, hasPromptMessage, promptMessage);
+        if (hasPromptMessage) {
+            if (promptJson == null) {
+                return new ResourcePackSend.Play(uniqueId, url, hash, forced, true, promptTag);
+            } else {
+                return new ResourcePackSend.Play(url, hash, forced, true, promptJson);
+            }
+        }
+        return new ResourcePackSend.Play(uniqueId, url, hash, forced);
     }
 
     public ResourcePackSend.Configuration asConfiguration() {
         if (this instanceof ResourcePackSend.Configuration) {
             return (ResourcePackSend.Configuration) this;
         }
-        return new ResourcePackSend.Configuration(uniqueId, url, hash, forced, hasPromptMessage, promptMessage);
+        if (hasPromptMessage) {
+            if (promptJson == null) {
+                return new ResourcePackSend.Configuration(uniqueId, url, hash, forced, true, promptTag);
+            } else {
+                return new ResourcePackSend.Configuration(url, hash, forced, true, promptJson);
+            }
+        }
+        return new ResourcePackSend.Configuration(uniqueId, url, hash, forced);
     }
 
     @Override
@@ -253,7 +324,8 @@ public class ResourcePackSend extends AbstractPacket {
         if (!Objects.equals(uniqueId, that.uniqueId)) return false;
         if (!Objects.equals(url, that.url)) return false;
         if (!Objects.equals(hash, that.hash)) return false;
-        return Objects.equals(promptMessage, that.promptMessage);
+        if (!Objects.equals(promptJson, that.promptJson)) return false;
+        return Objects.equals(promptTag, that.promptTag);
     }
 
     @Override
@@ -263,7 +335,8 @@ public class ResourcePackSend extends AbstractPacket {
         result = 31 * result + (hash != null ? hash.hashCode() : 0);
         result = 31 * result + (forced ? 1 : 0);
         result = 31 * result + (hasPromptMessage ? 1 : 0);
-        result = 31 * result + (promptMessage != null ? promptMessage.hashCode() : 0);
+        result = 31 * result + (promptJson != null ? promptJson.hashCode() : 0);
+        result = 31 * result + (promptTag != null ? promptTag.hashCode() : 0);
         return result;
     }
 
@@ -275,7 +348,7 @@ public class ResourcePackSend extends AbstractPacket {
                 ", hash='" + hash + '\'' +
                 ", forced=" + forced +
                 ", hasPromptMessage=" + hasPromptMessage +
-                (hasPromptMessage ? ", promptMessage='" + promptMessage + '\'' : "") +
+                (hasPromptMessage ? ", promptMessage='" + (promptJson != null ? promptJson : promptTag) + '\'' : "") +
                 '}';
     }
 
@@ -287,12 +360,16 @@ public class ResourcePackSend extends AbstractPacket {
             super(url, hash);
         }
 
-        public Play(String url, String hash, boolean forced, boolean hasPromptMessage, String promptMessage) {
-            super(url, hash, forced, hasPromptMessage, promptMessage);
+        public Play(UUID uniqueId, String url, String hash, boolean forced) {
+            super(uniqueId, url, hash, forced);
         }
 
-        public Play(UUID uniqueId, String url, String hash, boolean forced, boolean hasPromptMessage, String promptMessage) {
-            super(uniqueId, url, hash, forced, hasPromptMessage, promptMessage);
+        public Play(String url, String hash, boolean forced, boolean hasPromptMessage, String promptJson) {
+            super(url, hash, forced, hasPromptMessage, promptJson);
+        }
+
+        public Play(UUID uniqueId, String url, String hash, boolean forced, boolean hasPromptMessage, Tag<?> promptTag) {
+            super(uniqueId, url, hash, forced, hasPromptMessage, promptTag);
         }
     }
 
@@ -304,12 +381,16 @@ public class ResourcePackSend extends AbstractPacket {
             super(url, hash);
         }
 
-        public Configuration(String url, String hash, boolean forced, boolean hasPromptMessage, String promptMessage) {
-            super(url, hash, forced, hasPromptMessage, promptMessage);
+        public Configuration(UUID uniqueId, String url, String hash, boolean forced) {
+            super(uniqueId, url, hash, forced);
         }
 
-        public Configuration(UUID uniqueId, String url, String hash, boolean forced, boolean hasPromptMessage, String promptMessage) {
-            super(uniqueId, url, hash, forced, hasPromptMessage, promptMessage);
+        public Configuration(String url, String hash, boolean forced, boolean hasPromptMessage, String promptJson) {
+            super(url, hash, forced, hasPromptMessage, promptJson);
+        }
+
+        public Configuration(UUID uniqueId, String url, String hash, boolean forced, boolean hasPromptMessage, Tag<?> promptTag) {
+            super(uniqueId, url, hash, forced, hasPromptMessage, promptTag);
         }
     }
 }
