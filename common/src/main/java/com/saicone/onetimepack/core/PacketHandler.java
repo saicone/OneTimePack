@@ -197,8 +197,16 @@ public class PacketHandler {
             player.add(packet);
             OneTimePack.log(4, "Save packet on play for player " + uuid);
         });
-        packetListener.registerReceive(ResourcePackRemove.Configuration.class, Direction.UPSTREAM, event -> onPackRemove(event.player(), event.packet()));
-        packetListener.registerReceive(ResourcePackRemove.Play.class, Direction.UPSTREAM, event -> onPackRemove(event.player(), event.packet()));
+        packetListener.registerReceive(ResourcePackRemove.Configuration.class, Direction.DOWNSTREAM, event -> onPackRemove(event.player(), event.packet()));
+        packetListener.registerReceive(ResourcePackRemove.Play.class, Direction.DOWNSTREAM, event -> {
+            final ResourcePackRemove.Play packet = event.packet();
+            if (packet.hasUniqueId()) {
+                onPackRemove(event.player(), packet);
+            } else {
+                OneTimePack.log(4, "Cancelling packs clear from play protocol for player " + event.player().uniqueId());
+                event.cancelled(true);
+            }
+        });
         packetListener.registerReceive(ResourcePackStatus.Configuration.class, Direction.UPSTREAM, event -> onPackStatus(event.player(), event.packet()));
         packetListener.registerReceive(ResourcePackStatus.Play.class, Direction.UPSTREAM, event -> onPackStatus(event.player(), event.packet()));
     }
