@@ -116,7 +116,8 @@ public class ResourcePackSend extends AbstractPacket {
     // Added in 1.17
     private boolean forced;
     private boolean hasPromptMessage;
-    private String promptJson;
+    private String promptJson; // Removed in 1.20.3
+
     // Added in 1.20.3
     private Tag<?> promptTag;
 
@@ -174,6 +175,10 @@ public class ResourcePackSend extends AbstractPacket {
 
     public Tag<?> getPromptTag() {
         return promptTag;
+    }
+
+    public Protocol getProtocol() {
+        return this instanceof Play ? Protocol.PLAY : Protocol.CONFIGURATION;
     }
 
     public boolean isForced() {
@@ -243,7 +248,7 @@ public class ResourcePackSend extends AbstractPacket {
             hasPromptMessage = false;
         }
         if (OneTimePack.getLogLevel() >= 4) {
-            OneTimePack.log(4, "Packet#read() = " + this);
+            OneTimePack.log(4, "[" + getProtocol().name() + "] Packet#read() = " + this);
         }
     }
 

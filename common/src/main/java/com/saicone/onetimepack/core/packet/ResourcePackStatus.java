@@ -67,10 +67,8 @@ public class ResourcePackStatus extends AbstractPacket {
         );
     }
 
-    // Added in 1.20.3
-    private UUID uniqueId;
-    // Removed in 1.10
-    private String hash;
+    private UUID uniqueId; // Added in 1.20.3
+    private String hash; // Removed in 1.10
     // 0: successfully loaded
     // 1: declined
     // 2: failed download
@@ -131,6 +129,10 @@ public class ResourcePackStatus extends AbstractPacket {
         this.uniqueId = uniqueId;
     }
 
+    public Protocol getProtocol() {
+        return this instanceof Play ? Protocol.PLAY : Protocol.CONFIGURATION;
+    }
+
     public void setHash(String hash) {
         this.hash = hash;
     }
@@ -153,7 +155,7 @@ public class ResourcePackStatus extends AbstractPacket {
         }
         result = ProtocolUtil.readVarInt(buf);
         if (OneTimePack.getLogLevel() >= 4) {
-            OneTimePack.log(4, "Packet#read() = " + this);
+            OneTimePack.log(4, "[" + getProtocol().name() + "] Packet#read() = " + this);
         }
     }
 

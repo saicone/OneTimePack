@@ -75,6 +75,10 @@ public class ResourcePackRemove extends AbstractPacket {
         return uniqueId;
     }
 
+    public Protocol getProtocol() {
+        return this instanceof Play ? Protocol.PLAY : Protocol.CONFIGURATION;
+    }
+
     public void setHasUniqueId(boolean hasUniqueId) {
         this.hasUniqueId = hasUniqueId;
     }
@@ -90,7 +94,7 @@ public class ResourcePackRemove extends AbstractPacket {
             uniqueId = ProtocolUtil.readUniqueId(buf);
         }
         if (OneTimePack.getLogLevel() >= 4) {
-            OneTimePack.log(4, "Packet#read() = " + this);
+            OneTimePack.log(4, "[" + getProtocol().name() + "] Packet#read() = " + this);
         }
     }
 
