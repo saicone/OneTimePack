@@ -17,6 +17,8 @@ import dev.simplix.protocolize.api.player.ProtocolizePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -25,17 +27,29 @@ import java.util.function.Function;
 public class PacketHandler {
 
     private static final Class<?> START_CONFIGURATION;
+    private static final MethodHandle WRAPPER;
 
     static {
         Class<?> startConfiguration = null;
+        String name = null;
         try {
             startConfiguration = Class.forName("net.md_5.bungee.protocol.packet.StartConfiguration");
+            name = "dev.simplix.protocolize.bungee.packet.BungeeCordProtocolizePacket";
         } catch (ClassNotFoundException e) {
             try {
                 startConfiguration = Class.forName("com.velocitypowered.proxy.protocol.packet.config.StartUpdate");
+                name = "dev.simplix.protocolize.velocity.packet.VelocityProtocolizePacket";
             } catch (ClassNotFoundException ignored) { }
         }
+        MethodHandle wrapper = null;
+        try {
+            final Class<?> packetClass = Class.forName(name);
+            wrapper = MethodHandles.lookup().unreflect(packetClass.getDeclaredMethod("wrapper", AbstractPacket.class));
+        } catch (ClassNotFoundException | IllegalAccessException | NoSuchMethodException e) {
+            e.printStackTrace();
+        }
         START_CONFIGURATION = startConfiguration;
+        WRAPPER = wrapper;
     }
 
     private final OneTimePack plugin;
@@ -252,7 +266,7 @@ public class PacketHandler {
     public static Object getWrappedPacket(@NotNull AbstractPacket packet, @NotNull Protocol protocol, @NotNull PacketDirection direction, int protocolVersion) {
         final Object wrapped = Protocolize.protocolRegistration().createPacket(packet.getClass(), protocol, direction, protocolVersion);
         try {
-            wrapped.getClass().getDeclaredMethod("wrapper", AbstractPacket.class).invoke(wrapped, packet);
+            WRAPPER.invoke(wrapped, packet);
         } catch (Throwable t) {
             t.printStackTrace();
         }
