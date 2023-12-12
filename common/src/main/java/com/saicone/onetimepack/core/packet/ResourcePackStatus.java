@@ -73,30 +73,25 @@ public class ResourcePackStatus extends AbstractPacket {
     // 1: declined
     // 2: failed download
     // 3: accepted
-    // (configuration)
     // 4: downloaded
     // 5: invalid URL
     // 6: failed to reload
     // 7: discarded
-    // (play)
-    // 4: invalid URL
-    // 5: failed to reload
-    // 6: discarded
-    private int result;
+    private Result result;
 
     public ResourcePackStatus() {
     }
 
-    public ResourcePackStatus(int result) {
+    public ResourcePackStatus(Result result) {
         this.result = result;
     }
 
-    public ResourcePackStatus(UUID uniqueId, int result) {
+    public ResourcePackStatus(UUID uniqueId, Result result) {
         this.uniqueId = uniqueId;
         this.result = result;
     }
 
-    public ResourcePackStatus(String hash, int result) {
+    public ResourcePackStatus(String hash, Result result) {
         this.hash = hash;
         this.result = result;
     }
@@ -109,19 +104,19 @@ public class ResourcePackStatus extends AbstractPacket {
         return hash;
     }
 
-    public int getResult() {
+    public Result getResult() {
         return result;
     }
 
-    public int getResult(int protocol) {
-        if (result >= 4 && protocol < MINECRAFT_1_20_3) {
-            return getResultEnum().getFallback();
+    public int getResultOrdinal(int protocol) {
+        if (result.ordinal() >= 4 && protocol < MINECRAFT_1_20_3) {
+            return result.getFallback();
         }
-        return result;
+        return result.ordinal();
     }
 
     @NotNull
-    public Result getResultEnum() {
+    public Result getResultEnum(int result) {
         return Result.VALUES[result];
     }
 
@@ -137,12 +132,8 @@ public class ResourcePackStatus extends AbstractPacket {
         this.hash = hash;
     }
 
-    public void setResult(int result) {
-        this.result = result;
-    }
-
     public void setResult(@NotNull Result result) {
-        this.result = result.ordinal();
+        this.result = result;
     }
 
     @Override
@@ -153,7 +144,7 @@ public class ResourcePackStatus extends AbstractPacket {
         if (protocol <= MINECRAFT_1_9_4) {
             hash = ProtocolUtil.readString(buf);
         }
-        result = ProtocolUtil.readVarInt(buf);
+        result = getResultEnum(ProtocolUtil.readVarInt(buf));
         if (OneTimePack.getLogLevel() >= 4) {
             OneTimePack.log(4, "[" + getProtocol().name() + "] Packet#read() = " + this);
         }
@@ -167,7 +158,7 @@ public class ResourcePackStatus extends AbstractPacket {
         if (protocol <= MINECRAFT_1_9_4) {
             ProtocolUtil.writeString(buf, hash);
         }
-        ProtocolUtil.writeVarInt(buf, getResult(protocol));
+        ProtocolUtil.writeVarInt(buf, getResultOrdinal(protocol));
     }
 
     public ResourcePackStatus copy() {
@@ -204,7 +195,7 @@ public class ResourcePackStatus extends AbstractPacket {
     public int hashCode() {
         int result1 = uniqueId != null ? uniqueId.hashCode() : 0;
         result1 = 31 * result1 + (hash != null ? hash.hashCode() : 0);
-        result1 = 31 * result1 + result;
+        result1 = 31 * result1 + (result != null ? result.ordinal() : -1);
         return result1;
     }
 
@@ -213,7 +204,7 @@ public class ResourcePackStatus extends AbstractPacket {
         return "ServerboundResourcePack{" +
                 (uniqueId != null ? "uniqueId='" + uniqueId + "', " : "") +
                 (hash != null ? "hash='" + hash + "', " : "") +
-                "result=" + result +
+                "result=" + (result != null ? result.ordinal() : -1) +
                 '}';
     }
 
@@ -221,29 +212,16 @@ public class ResourcePackStatus extends AbstractPacket {
         public Play() {
         }
 
-        public Play(int result) {
+        public Play(Result result) {
             super(result);
         }
 
-        public Play(UUID uniqueId, int result) {
+        public Play(UUID uniqueId, Result result) {
             super(uniqueId, result);
         }
 
-        public Play(String hash, int result) {
+        public Play(String hash, Result result) {
             super(hash, result);
-        }
-
-        @Override
-        public @NotNull Result getResultEnum() {
-            if (getResult() >= 4) {
-                return Result.VALUES[getResult() + 1];
-            }
-            return super.getResultEnum();
-        }
-
-        @Override
-        public void setResult(@NotNull Result result) {
-            super.setResult(result == Result.DOWNLOADED ? Result.SUCCESS_DOWNLOAD : result);
         }
     }
 
@@ -251,15 +229,15 @@ public class ResourcePackStatus extends AbstractPacket {
         public Configuration() {
         }
 
-        public Configuration(int result) {
+        public Configuration(Result result) {
             super(result);
         }
 
-        public Configuration(UUID uniqueId, int result) {
+        public Configuration(UUID uniqueId, Result result) {
             super(uniqueId, result);
         }
 
-        public Configuration(String hash, int result) {
+        public Configuration(String hash, Result result) {
             super(hash, result);
         }
     }

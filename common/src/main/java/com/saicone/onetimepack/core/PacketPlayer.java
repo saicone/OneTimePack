@@ -80,13 +80,12 @@ public class PacketPlayer {
         }
         if (result == null && defaultResult != null) {
             if (uniquePack) {
-                result = new ResourcePackStatus(packet.getHash(), -1);
+                result = new ResourcePackStatus(packet.getHash(), defaultResult);
             } else if (packet.getUniqueId() != null) {
-                result = new ResourcePackStatus(packet.getUniqueId(), -1);
+                result = new ResourcePackStatus(packet.getUniqueId(), defaultResult);
             } else {
                 return null;
             }
-            result.setResult(defaultResult);
             add(result);
         }
         return result;

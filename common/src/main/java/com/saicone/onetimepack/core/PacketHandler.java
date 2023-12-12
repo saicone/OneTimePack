@@ -155,7 +155,12 @@ public class PacketHandler {
                 OneTimePack.log(4, "The cached pack will be send for player due it's on configuration state");
                 new Thread(() -> {
                     for (Map.Entry<UUID, ResourcePackSend> entry : players.get(uuid).getPacks().entrySet()) {
-                        event.player().sendPacket(getWrappedPacket(entry.getValue().asConfiguration(), Protocol.CONFIGURATION, PacketDirection.CLIENTBOUND, event.player().protocolVersion()));
+                        event.player().sendPacket(getWrappedPacket(
+                                entry.getValue().asConfiguration(),
+                                Protocol.CONFIGURATION,
+                                PacketDirection.CLIENTBOUND,
+                                event.player().protocolVersion()
+                        ));
                     }
                     OneTimePack.log(4, "Sent!");
                 }).start();
