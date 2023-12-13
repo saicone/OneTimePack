@@ -10,7 +10,6 @@ import dev.simplix.protocolize.api.Direction;
 import dev.simplix.protocolize.api.PacketDirection;
 import dev.simplix.protocolize.api.Protocol;
 import dev.simplix.protocolize.api.Protocolize;
-import dev.simplix.protocolize.api.listener.PacketReceiveEvent;
 import dev.simplix.protocolize.api.mapping.ProtocolIdMapping;
 import dev.simplix.protocolize.api.packet.AbstractPacket;
 import dev.simplix.protocolize.api.player.ProtocolizePlayer;
@@ -23,6 +22,8 @@ import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import static dev.simplix.protocolize.api.util.ProtocolVersions.*;
 
 public class PacketHandler {
 
@@ -57,6 +58,11 @@ public class PacketHandler {
     private PacketListener packetListener;
     private BiPredicate<ResourcePackSend, ResourcePackSend> comparator;
     private ResourcePackStatus.Result defaultStatus = null;
+    private boolean sendPlay = false;
+    private boolean sendConfiguration = true;
+    private boolean clearPlay = false;
+    private boolean clearConfiguration = true;
+    private boolean sendCached1_20_2 = false;
 
     private final Map<UUID, PacketPlayer> players = new HashMap<>();
 
@@ -120,98 +126,72 @@ public class PacketHandler {
             };
         }
 
+        defaultStatus = null;
         final Object status = OneTimePack.SETTINGS.get("Pack.Default-Status");
         if (status instanceof Number) {
             final int num = ((Number) status).intValue();
             if (num > 7) {
-                defaultStatus = null;
                 OneTimePack.log(2, "Default pack status cannot be a number upper than 7, so will be set as 'none'");
             } else {
                 defaultStatus = num < 0 ? null : ResourcePackStatus.Result.VALUES[num];
             }
-            return;
         } else if (status != null) {
             final String name = String.valueOf(status).trim().toUpperCase().replace(' ', '_');
-            if (name.equals("NONE")) {
-                defaultStatus = null;
-                return;
-            }
-            for (ResourcePackStatus.Result result : ResourcePackStatus.Result.VALUES) {
-                if (result.name().equals(name)) {
-                    defaultStatus = result;
-                    return;
+            if (!name.equals("-1") && !name.equals("NONE")) {
+                for (ResourcePackStatus.Result result : ResourcePackStatus.Result.VALUES) {
+                    if (result.name().equals(name)) {
+                        defaultStatus = result;
+                        return;
+                    }
                 }
+                OneTimePack.log(2, "The pack status '" + status + "' is not a valid state");
             }
-            OneTimePack.log(2, "The pack status '" + status + "' is not a valid state");
         }
-        defaultStatus = null;
+
+        sendPlay = OneTimePack.SETTINGS.getBoolean("Pack.Send.Play", false);
+        sendConfiguration = OneTimePack.SETTINGS.getBoolean("Pack.Send.Configuration", false);
+        clearPlay = OneTimePack.SETTINGS.getBoolean("Pack.Clear.Play", false);
+        if (clearPlay) {
+            OneTimePack.log(2, "The resource pack clear was allowed to be used on PLAY protocol");
+            OneTimePack.log(2, "Take in count this option may generate problems with < 1.20.3 servers using ViaVersion");
+        }
+        clearConfiguration = OneTimePack.SETTINGS.getBoolean("Pack.Clear.Configuration", true);
+        sendCached1_20_2 = OneTimePack.SETTINGS.getBoolean("Experimental.Send-Cached-1-20-2", false);
+        if (sendCached1_20_2) {
+            OneTimePack.log(2, "The cached resource pack was allowed to be re-sended to 1.20.2 clients");
+            OneTimePack.log(2, "Take in count this option will make 1.20.2 players to re-download resource pack on server switch");
+        }
     }
 
     public void onEnable() {
         packetListener = new PacketListener();
-        packetListener.registerSend(START_CONFIGURATION, Direction.UPSTREAM, event -> {
-            final UUID uuid = event.player().uniqueId();
-            if (players.containsKey(uuid)) {
-                OneTimePack.log(4, "The cached pack will be send for player due it's on configuration state");
-                new Thread(() -> {
-                    for (Map.Entry<UUID, ResourcePackSend> entry : players.get(uuid).getPacks().entrySet()) {
-                        event.player().sendPacket(getWrappedPacket(
-                                entry.getValue().asConfiguration(),
-                                Protocol.CONFIGURATION,
-                                PacketDirection.CLIENTBOUND,
-                                event.player().protocolVersion()
-                        ));
-                    }
-                    OneTimePack.log(4, "Sent!");
-                }).start();
-            }
-        });
-        packetListener.registerReceive(ResourcePackSend.Configuration.class, Direction.DOWNSTREAM, event -> {
-            final ResourcePackSend.Configuration packet = event.packet();
-            if (onPackSend(event, packet)) {
-                getPacketPlayer(event.player()).add(packet);
-                OneTimePack.log(4, "Save packet on config for player " + event.player().uniqueId());
-            }
-        });
-        packetListener.registerReceive(ResourcePackSend.Play.class, Direction.DOWNSTREAM, event -> {
-            final ResourcePackSend.Play packet = event.packet();
-            if (!onPackSend(event, packet)) {
-                return;
-            }
-
-            final PacketPlayer player = getPacketPlayer(event.player());
-            final UUID uuid = event.player().uniqueId();
-            // Cancel resource pack re-sending to player
-            if (player.contains(packet, comparator)) {
-                OneTimePack.log(4, "Same resource pack received for player: " + player.getUniqueId());
-                event.cancelled(true);
-                // Re-send to server the actual resource pack status from player
-                plugin.getProvider().run(() -> {
-                    final ResourcePackStatus cached = player.getResult(packet, defaultStatus);
-                    if (cached == null) {
-                        return;
-                    }
-                    event.player().sendPacketToServer(cached.asPlay());
-                    if (OneTimePack.getLogLevel() >= 4) {
-                        OneTimePack.log(4, "Sent cached result " + cached + " from player " + uuid);
-                    }
-                }, true);
-                return;
-            }
-
-            player.add(packet);
-            OneTimePack.log(4, "Save packet on play for player " + uuid);
-        });
-        packetListener.registerReceive(ResourcePackRemove.Configuration.class, Direction.DOWNSTREAM, event -> onPackRemove(event.player(), event.packet()));
-        packetListener.registerReceive(ResourcePackRemove.Play.class, Direction.DOWNSTREAM, event -> {
-            final ResourcePackRemove.Play packet = event.packet();
-            if (packet.hasUniqueId()) {
-                onPackRemove(event.player(), packet);
-            } else {
-                OneTimePack.log(4, "Cancelling packs clear from play protocol for player " + event.player().uniqueId());
-                event.cancelled(true);
-            }
-        });
+        if (START_CONFIGURATION != null) {
+            packetListener.registerSend(START_CONFIGURATION, Direction.UPSTREAM, event -> {
+                if (!sendCached1_20_2 || event.player().protocolVersion() >= MINECRAFT_1_20_3) {
+                    return;
+                }
+                final UUID uuid = event.player().uniqueId();
+                if (players.containsKey(uuid)) {
+                    OneTimePack.log(4, "The cached pack will be send for player due it's on configuration state");
+                    // Send with new thread due Protocolize catch StartConfiguration packet before proxy itself
+                    new Thread(() -> {
+                        for (Map.Entry<UUID, ResourcePackSend> entry : players.get(uuid).getPacks().entrySet()) {
+                            event.player().sendPacket(getWrappedPacket(
+                                    entry.getValue().asConfiguration(),
+                                    Protocol.CONFIGURATION,
+                                    PacketDirection.CLIENTBOUND,
+                                    event.player().protocolVersion()
+                            ));
+                        }
+                        OneTimePack.log(4, "Sent!");
+                    }).start();
+                }
+            });
+        }
+        packetListener.registerReceive(ResourcePackSend.Configuration.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackSend(event.player(), event.packet(), sendConfiguration)));
+        packetListener.registerReceive(ResourcePackSend.Play.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackSend(event.player(), event.packet(), sendPlay)));
+        packetListener.registerReceive(ResourcePackRemove.Configuration.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackRemove(event.player(), event.packet(), clearConfiguration)));
+        packetListener.registerReceive(ResourcePackRemove.Play.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackRemove(event.player(), event.packet(), clearPlay)));
         packetListener.registerReceive(ResourcePackStatus.Configuration.class, Direction.UPSTREAM, event -> onPackStatus(event.player(), event.packet()));
         packetListener.registerReceive(ResourcePackStatus.Play.class, Direction.UPSTREAM, event -> onPackStatus(event.player(), event.packet()));
     }
@@ -223,10 +203,10 @@ public class PacketHandler {
         clear();
     }
 
-    private boolean onPackSend(@NotNull PacketReceiveEvent<?> event, @Nullable ResourcePackSend packet) {
+    private boolean onPackSend(@NotNull ProtocolizePlayer protocolizePlayer, @Nullable ResourcePackSend packet, boolean allowSend) {
         if (packet == null) {
             OneTimePack.log(4, "The packet ResourcePackSend was null");
-            return false;
+            return true;
         }
         if (OneTimePack.getLogLevel() >= 4) {
             OneTimePack.log(4, "Received ResourcePackSend: " + packet);
@@ -236,19 +216,54 @@ public class PacketHandler {
         // Avoid invalid resource pack sending
         if (String.valueOf(hash).equalsIgnoreCase("null") || hash.trim().isEmpty()) {
             OneTimePack.log(4, "Invalid packet received, so will be cancelled");
-            event.cancelled(true);
-            return false;
+            return true;
         }
-        return true;
+
+        final PacketPlayer player = getPacketPlayer(protocolizePlayer);
+        final UUID uuid = protocolizePlayer.uniqueId();
+        // Cancel resource pack re-sending to player
+        if (!allowSend && player.contains(packet, comparator)) {
+            OneTimePack.log(4, "Same resource pack received for player: " + player.getUniqueId());
+            // Re-send to server the actual resource pack status from player
+            plugin.getProvider().run(() -> {
+                final ResourcePackStatus cached = player.getResult(packet, defaultStatus);
+                if (cached == null) {
+                    return;
+                }
+                if (packet.getProtocol() == Protocol.CONFIGURATION) {
+                    protocolizePlayer.sendPacketToServer(getWrappedPacket(
+                            cached.asConfiguration(),
+                            Protocol.CONFIGURATION,
+                            PacketDirection.SERVERBOUND,
+                            protocolizePlayer.protocolVersion()
+                    ));
+                } else {
+                    protocolizePlayer.sendPacketToServer(cached.asPlay());
+                }
+                if (OneTimePack.getLogLevel() >= 4) {
+                    OneTimePack.log(4, "Sent cached result " + cached + " from player " + uuid);
+                }
+            }, true);
+            return true;
+        }
+
+        player.add(packet);
+        OneTimePack.log(4, "Save packet on " + packet.getProtocol().name() + " protocol for player " + uuid);
+        return false;
     }
 
-    private void onPackRemove(@NotNull ProtocolizePlayer player, @Nullable ResourcePackRemove packet) {
+    private boolean onPackRemove(@NotNull ProtocolizePlayer player, @Nullable ResourcePackRemove packet, boolean allowClear) {
         if (packet == null) {
             OneTimePack.log(4, "The packet ResourcePackRemove was null");
-            return;
+            return true;
+        }
+        if (!allowClear && !packet.hasUniqueId()) {
+            OneTimePack.log(4, "Cancelling packs clear from " + packet.getProtocol().name() + " protocol for player " + player.uniqueId());
+            return true;
         }
         getPacketPlayer(player).remove(packet);
         OneTimePack.log(4, "Remove cached packet using: " + packet + " from player " + player.uniqueId());
+        return false;
     }
 
     private void onPackStatus(@NotNull ProtocolizePlayer player, @Nullable ResourcePackStatus packet) {

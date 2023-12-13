@@ -31,3 +31,22 @@ Pack:
   # DISCARDED        = The pack is already downloaded, but was ignored
   # Set to 'none' to disable
   Default-Status: none
+  # Allow or not resource pack re-sending
+  Send:
+    # Allow re-sending via PLAY protocol
+    Play: false
+    # Allow re-sending via CONFIGURATION protocol
+    Configuration: false
+  # Allow or not all resource packs can be cleared for +1.20.3 clients
+  Clear:
+    # Allow clear via PLAY protocol
+    # This option may generate problems with < 1.20.3 servers using ViaVersion
+    Play: false
+    # Allow clear via CONFIGURATION protocol
+    Configuration: true
+
+# Experimental configuration
+Experimental:
+  # Send or not cached resource pack to 1.20.2 clients when configuration protocol starts
+  # This option solve resource pack clear on server change, but will make 1.20.2 players to re-download resource pack every time they switch servers
+  Send-Cached-1-20-2: false

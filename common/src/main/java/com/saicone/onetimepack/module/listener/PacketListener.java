@@ -41,9 +41,9 @@ public class PacketListener {
         if (!listener.isRegistered()) {
             listener.setRegistered(true);
             Protocolize.listenerProvider().registerListener(listener);
-            OneTimePack.log(4, "The listener of " + listener.type().getSimpleName() + " was registered in direction " + listener.direction().name());
+            OneTimePack.log(4, "The listener of " + listener.type().getName() + " was registered in direction " + listener.direction().name());
         } else {
-            OneTimePack.log(4, "The listener of " + listener.type().getSimpleName() + " is registered in direction " + listener.direction().name());
+            OneTimePack.log(4, "The listener of " + listener.type().getName() + " is registered in direction " + listener.direction().name());
         }
     }
 
