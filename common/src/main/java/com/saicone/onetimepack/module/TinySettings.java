@@ -55,6 +55,10 @@ public class TinySettings {
         return map.get(path[path.length - 1]);
     }
 
+    public Map<String, Object> getPaths() {
+        return paths;
+    }
+
     @Nullable
     public String getString(@NotNull String path) {
         final Object object = get(path);
@@ -108,7 +112,8 @@ public class TinySettings {
             if (charIndex < 0) {
                 continue;
             }
-            if (!hasBeforeSpaces(rawLine, startSpaces)) {
+            final int lineSpaces = countSpaces(rawLine);
+            if (lineSpaces < startSpaces) {
                 return i - index;
             }
 
@@ -120,7 +125,6 @@ public class TinySettings {
             // Check if the value is a Map
             if (value.isEmpty() && i + 1 < lines.size()) {
                 boolean isMap = false;
-                final int spaces = startSpaces + 1;
                 for (int i1 = i + 1; i1 < lines.size(); i1++) {
                     final String s = lines.get(i1);
                     if (separatorIndex(s.trim()) < 0) {
@@ -128,10 +132,10 @@ public class TinySettings {
                         continue;
                     }
                     // Sub value of map
-                    if (hasBeforeSpaces(s, spaces)) {
+                    if (countSpaces(s) > lineSpaces) {
                         isMap = true;
                         final Map<String, Object> map = new HashMap<>();
-                        i = i1 + read(lines, map, i1, spaces) - 1;
+                        i = i1 + read(lines, map, i1, lineSpaces + 1) - 1;
                         paths.put(key, map);
                     }
                     break;
@@ -169,17 +173,15 @@ public class TinySettings {
         return separatorIndex;
     }
 
-    private boolean hasBeforeSpaces(@NotNull String s, int spaces) {
-        if (spaces == 0) {
-            return true;
-        }
-        final char[] chars = s.toCharArray();
-        for (int i = 0; i < chars.length; i++) {
-            if (chars[i] != ' ') {
-                return i >= spaces;
+    private int countSpaces(@NotNull String s) {
+        int spaces = 0;
+        for (char c : s.toCharArray()) {
+            if (c != ' ') {
+                break;
             }
+            spaces++;
         }
-        return false;
+        return spaces;
     }
 
     private int parseInt(@Nullable Object object, int def) {

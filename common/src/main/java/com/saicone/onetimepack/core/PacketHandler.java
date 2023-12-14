@@ -152,14 +152,14 @@ public class PacketHandler {
         sendConfiguration = OneTimePack.SETTINGS.getBoolean("Pack.Send.Configuration", false);
         clearPlay = OneTimePack.SETTINGS.getBoolean("Pack.Clear.Play", false);
         if (clearPlay) {
-            OneTimePack.log(2, "The resource pack clear was allowed to be used on PLAY protocol");
-            OneTimePack.log(2, "Take in count this option may generate problems with < 1.20.3 servers using ViaVersion");
+            OneTimePack.log(2, "The resource pack clear was allowed to be used on PLAY protocol, " +
+                    "take in count this option may generate problems with < 1.20.3 servers using ViaVersion");
         }
         clearConfiguration = OneTimePack.SETTINGS.getBoolean("Pack.Clear.Configuration", true);
         sendCached1_20_2 = OneTimePack.SETTINGS.getBoolean("Experimental.Send-Cached-1-20-2", false);
         if (sendCached1_20_2) {
-            OneTimePack.log(2, "The cached resource pack was allowed to be re-sended to 1.20.2 clients");
-            OneTimePack.log(2, "Take in count this option will make 1.20.2 players to re-download resource pack on server switch");
+            OneTimePack.log(2, "The cached resource pack was allowed to be re-sended to 1.20.2 clients, " +
+                    "take in count this option will make 1.20.2 players to re-download resource pack on server switch");
         }
     }
 
