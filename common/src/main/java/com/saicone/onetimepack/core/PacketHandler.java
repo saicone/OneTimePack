@@ -262,7 +262,7 @@ public class PacketHandler {
                     protocolizePlayer.sendPacket(getWrappedPacket(
                             new ResourcePackRemove.Configuration(),
                             Protocol.CONFIGURATION,
-                            PacketDirection.SERVERBOUND,
+                            PacketDirection.CLIENTBOUND,
                             protocolizePlayer.protocolVersion()
                     ));
                 } else {
