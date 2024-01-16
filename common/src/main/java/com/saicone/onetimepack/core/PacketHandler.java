@@ -58,11 +58,14 @@ public class PacketHandler {
     private PacketListener packetListener;
     private BiPredicate<ResourcePackSend, ResourcePackSend> comparator;
     private ResourcePackStatus.Result defaultStatus = null;
+    private PackBehavior behaviorPlay = PackBehavior.OVERRIDE;
+    private PackBehavior behaviorConfiguration = PackBehavior.STACK;
     private boolean sendPlay = false;
     private boolean sendConfiguration = true;
     private boolean clearPlay = false;
     private boolean clearConfiguration = true;
     private boolean sendCached1_20_2 = false;
+    private boolean sendInvalid = false;
 
     private final Map<UUID, PacketPlayer> players = new HashMap<>();
 
@@ -148,6 +151,8 @@ public class PacketHandler {
             }
         }
 
+        behaviorPlay = PackBehavior.of(OneTimePack.SETTINGS.getString("Pack.Behavior.Play", "OVERRIDE"));
+        behaviorConfiguration = PackBehavior.of(OneTimePack.SETTINGS.getString("Pack.Behavior.Configuration", "STACK"));
         sendPlay = OneTimePack.SETTINGS.getBoolean("Pack.Send.Play", false);
         sendConfiguration = OneTimePack.SETTINGS.getBoolean("Pack.Send.Configuration", false);
         clearPlay = OneTimePack.SETTINGS.getBoolean("Pack.Clear.Play", false);
@@ -161,6 +166,7 @@ public class PacketHandler {
             OneTimePack.log(2, "The cached resource pack was allowed to be re-sended to 1.20.2 clients, " +
                     "take in count this option will make 1.20.2 players to re-download resource pack on server switch");
         }
+        sendInvalid = OneTimePack.SETTINGS.getBoolean("Experimental.Send-Invalid", false);
     }
 
     public void onEnable() {
@@ -188,8 +194,8 @@ public class PacketHandler {
                 }
             });
         }
-        packetListener.registerReceive(ResourcePackSend.Configuration.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackSend(event.player(), event.packet(), sendConfiguration)));
-        packetListener.registerReceive(ResourcePackSend.Play.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackSend(event.player(), event.packet(), sendPlay)));
+        packetListener.registerReceive(ResourcePackSend.Configuration.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackSend(event.player(), event.packet(), behaviorConfiguration, sendConfiguration)));
+        packetListener.registerReceive(ResourcePackSend.Play.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackSend(event.player(), event.packet(), behaviorPlay, sendPlay)));
         packetListener.registerReceive(ResourcePackRemove.Configuration.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackRemove(event.player(), event.packet(), clearConfiguration)));
         packetListener.registerReceive(ResourcePackRemove.Play.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackRemove(event.player(), event.packet(), clearPlay)));
         packetListener.registerReceive(ResourcePackStatus.Configuration.class, Direction.UPSTREAM, event -> onPackStatus(event.player(), event.packet()));
@@ -203,10 +209,10 @@ public class PacketHandler {
         clear();
     }
 
-    private boolean onPackSend(@NotNull ProtocolizePlayer protocolizePlayer, @Nullable ResourcePackSend packet, boolean allowSend) {
+    private boolean onPackSend(@NotNull ProtocolizePlayer protocolizePlayer, @Nullable ResourcePackSend packet, @NotNull PackBehavior behavior, boolean allowSend) {
         if (packet == null) {
             OneTimePack.log(4, "The packet ResourcePackSend was null");
-            return true;
+            return !sendInvalid;
         }
         if (OneTimePack.getLogLevel() >= 4) {
             OneTimePack.log(4, "Received ResourcePackSend: " + packet);
@@ -216,7 +222,7 @@ public class PacketHandler {
         // Avoid invalid resource pack sending
         if (String.valueOf(hash).equalsIgnoreCase("null") || hash.trim().isEmpty()) {
             OneTimePack.log(4, "Invalid packet received, so will be cancelled");
-            return true;
+            return !sendInvalid;
         }
 
         final PacketPlayer player = getPacketPlayer(protocolizePlayer);
@@ -245,6 +251,24 @@ public class PacketHandler {
                 }
             }, true);
             return true;
+        }
+
+        // Apply pack behavior for +1.20.3 client
+        if (!player.isUniquePack() && !player.getPacks().isEmpty()) {
+            OneTimePack.log(4, "Applying " + behavior.name() + " behavior...");
+            if (behavior == PackBehavior.OVERRIDE) {
+                player.clear();
+                if (packet.getProtocol() == Protocol.CONFIGURATION) {
+                    protocolizePlayer.sendPacket(getWrappedPacket(
+                            new ResourcePackRemove.Configuration(),
+                            Protocol.CONFIGURATION,
+                            PacketDirection.SERVERBOUND,
+                            protocolizePlayer.protocolVersion()
+                    ));
+                } else {
+                    protocolizePlayer.sendPacket(new ResourcePackRemove.Play());
+                }
+            }
         }
 
         player.add(packet);

@@ -31,6 +31,14 @@ Pack:
   # DISCARDED        = The pack is already downloaded, but was ignored
   # Set to 'none' to disable
   Default-Status: none
+  # Pack behavior (Only for +1.20.3 clients):
+  # STACK    = Stack new resource pack into loaded packs
+  # OVERRIDE = Clear all loaded packs on detect new resource pack
+  Behavior:
+    # Pack behavior on PLAY protocol
+    Play: OVERRIDE
+    # Pack behavior on CONFIGURATION protocol
+    Configuration: STACK
   # Allow or not resource pack re-sending
   Send:
     # Allow re-sending via PLAY protocol
@@ -50,3 +58,5 @@ Experimental:
   # Send or not cached resource pack to 1.20.2 clients when configuration protocol starts
   # This option solve resource pack clear on server change, but will make 1.20.2 players to re-download resource pack every time they switch servers
   Send-Cached-1-20-2: false
+  # Send or not invalid resource packs to clients
+  Send-Invalid: false

@@ -30,6 +30,10 @@ public class PacketPlayer {
         this.uniquePack = protocol < MINECRAFT_1_20_3;
     }
 
+    public boolean isUniquePack() {
+        return uniquePack;
+    }
+
     public UUID getUniqueId() {
         return uniqueId;
     }
