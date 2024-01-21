@@ -220,9 +220,9 @@ public class PacketHandler {
 
         final String hash = packet.getHash();
         // Avoid invalid resource pack sending
-        if (String.valueOf(hash).equalsIgnoreCase("null") || hash.trim().isEmpty()) {
+        if (!sendInvalid && String.valueOf(hash).equalsIgnoreCase("null") || hash.trim().isEmpty()) {
             OneTimePack.log(4, "Invalid packet received, so will be cancelled");
-            return !sendInvalid;
+            return true;
         }
 
         final PacketPlayer player = getPacketPlayer(protocolizePlayer);

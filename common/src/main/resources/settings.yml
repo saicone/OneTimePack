@@ -19,7 +19,7 @@ Pack:
   # ANY    = Don't compare, just cancel any other pack sending to player
   # Use multiple comparisons with 'AND', or optional with 'OR'
   # Add '!' to compare object only if it's not null
-  Comparator: !UUID OR HASH
+  Comparator: !UUID OR !HASH OR URL
   # Default pack status to send if player don't have any status saved:
   # SUCCESS_DOWNLOAD = The pack was successfully downloaded, and it's active by the client
   # DECLINED         = The pack was declined by the player
