@@ -167,6 +167,9 @@ public class PacketHandler {
                     "take in count this option will make 1.20.2 players to re-download resource pack on server switch");
         }
         sendInvalid = OneTimePack.SETTINGS.getBoolean("Experimental.Send-Invalid", false);
+        if (sendInvalid) {
+            OneTimePack.log(3, "Invalid packs will be send to players");
+        }
     }
 
     public void onEnable() {
@@ -220,9 +223,13 @@ public class PacketHandler {
 
         final String hash = packet.getHash();
         // Avoid invalid resource pack sending
-        if (!sendInvalid && String.valueOf(hash).equalsIgnoreCase("null") || hash.trim().isEmpty()) {
-            OneTimePack.log(4, "Invalid packet received, so will be cancelled");
-            return true;
+        if (String.valueOf(hash).equalsIgnoreCase("null")) {
+            if (sendInvalid) {
+                OneTimePack.log(4, "The packet doesn't contains HASH, but invalid packs are allowed");
+            } else {
+                OneTimePack.log(4, "Invalid packet HASH received, so will be cancelled");
+                return true;
+            }
         }
 
         final PacketPlayer player = getPacketPlayer(protocolizePlayer);
