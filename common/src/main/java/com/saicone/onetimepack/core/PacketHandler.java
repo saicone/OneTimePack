@@ -64,6 +64,8 @@ public class PacketHandler {
     private boolean sendConfiguration = true;
     private boolean clearPlay = false;
     private boolean clearConfiguration = true;
+    private boolean removePlay = false;
+    private boolean removeConfiguration = true;
     private boolean sendCached1_20_2 = false;
     private boolean sendInvalid = false;
 
@@ -161,6 +163,8 @@ public class PacketHandler {
                     "take in count this option may generate problems with < 1.20.3 servers using ViaVersion");
         }
         clearConfiguration = OneTimePack.SETTINGS.getBoolean("Pack.Clear.Configuration", true);
+        removePlay = OneTimePack.SETTINGS.getBoolean("Pack.Remove.Play", false);
+        removeConfiguration = OneTimePack.SETTINGS.getBoolean("Pack.Remove.Configuration", true);
         sendCached1_20_2 = OneTimePack.SETTINGS.getBoolean("Experimental.Send-Cached-1-20-2", false);
         if (sendCached1_20_2) {
             OneTimePack.log(2, "The cached resource pack was allowed to be re-sended to 1.20.2 clients, " +
@@ -199,8 +203,8 @@ public class PacketHandler {
         }
         packetListener.registerReceive(ResourcePackSend.Configuration.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackSend(event.player(), event.packet(), behaviorConfiguration, sendConfiguration)));
         packetListener.registerReceive(ResourcePackSend.Play.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackSend(event.player(), event.packet(), behaviorPlay, sendPlay)));
-        packetListener.registerReceive(ResourcePackRemove.Configuration.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackRemove(event.player(), event.packet(), clearConfiguration)));
-        packetListener.registerReceive(ResourcePackRemove.Play.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackRemove(event.player(), event.packet(), clearPlay)));
+        packetListener.registerReceive(ResourcePackRemove.Configuration.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackRemove(event.player(), event.packet(), clearConfiguration, removeConfiguration)));
+        packetListener.registerReceive(ResourcePackRemove.Play.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackRemove(event.player(), event.packet(), clearPlay, removePlay)));
         packetListener.registerReceive(ResourcePackStatus.Configuration.class, Direction.UPSTREAM, event -> onPackStatus(event.player(), event.packet()));
         packetListener.registerReceive(ResourcePackStatus.Play.class, Direction.UPSTREAM, event -> onPackStatus(event.player(), event.packet()));
     }
@@ -283,13 +287,17 @@ public class PacketHandler {
         return false;
     }
 
-    private boolean onPackRemove(@NotNull ProtocolizePlayer player, @Nullable ResourcePackRemove packet, boolean allowClear) {
+    private boolean onPackRemove(@NotNull ProtocolizePlayer player, @Nullable ResourcePackRemove packet, boolean allowClear, boolean allowRemove) {
         if (packet == null) {
             OneTimePack.log(4, "The packet ResourcePackRemove was null");
             return true;
         }
         if (!allowClear && !packet.hasUniqueId()) {
             OneTimePack.log(4, "Cancelling packs clear from " + packet.getProtocol().name() + " protocol for player " + player.uniqueId());
+            return true;
+        }
+        if (!allowRemove) {
+            OneTimePack.log(4, "Cancelling pack remove from " + packet.getProtocol().name() + " protocol for player " + player.uniqueId());
             return true;
         }
         getPacketPlayer(player).remove(packet);

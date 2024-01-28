@@ -52,6 +52,13 @@ Pack:
     Play: false
     # Allow clear via CONFIGURATION protocol
     Configuration: true
+  # Allow or not resource packs can be removed for +1.20.3 clients
+  Remove:
+    # Allow remove via PLAY protocol
+    # This option may generate problems with severs using ItemsAdder
+    Play: false
+    # Allow remove via CONFIGURATION protocol
+    Configuration: true
 
 # Experimental configuration
 Experimental:
