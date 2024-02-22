@@ -2,14 +2,18 @@ package com.saicone.onetimepack.module.listener;
 
 import com.saicone.onetimepack.OneTimePack;
 import dev.simplix.protocolize.api.Direction;
+import dev.simplix.protocolize.api.Platform;
 import dev.simplix.protocolize.api.Protocolize;
 import dev.simplix.protocolize.api.listener.AbstractPacketListener;
 import dev.simplix.protocolize.api.listener.PacketReceiveEvent;
 import dev.simplix.protocolize.api.listener.PacketSendEvent;
+import dev.simplix.protocolize.api.packet.AbstractPacket;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -37,14 +41,30 @@ public class PacketListener {
         register(listener);
     }
 
+    @SuppressWarnings("unchecked")
     private void register(@NotNull Listener<?> listener) {
-        if (!listener.isRegistered()) {
+        if (listener.isRegistered()) {
+            OneTimePack.log(4, "The listener of " + listener.type().getName() + " is registered in direction " + listener.direction().name());
+            return;
+        }
+        if (Protocolize.platform() == Platform.BUNGEECORD || AbstractPacket.class.isAssignableFrom(listener.type())) {
             listener.setRegistered(true);
             Protocolize.listenerProvider().registerListener(listener);
-            OneTimePack.log(4, "The listener of " + listener.type().getName() + " was registered in direction " + listener.direction().name());
         } else {
-            OneTimePack.log(4, "The listener of " + listener.type().getName() + " is registered in direction " + listener.direction().name());
+            try {
+                final Field field = Protocolize.listenerProvider().getClass().getDeclaredField("listeners");
+                field.setAccessible(true);
+                final List<AbstractPacketListener<?>> listeners = (List<AbstractPacketListener<?>>) field.get(Protocolize.listenerProvider());
+                listeners.add(listener);
+            } catch (Throwable t) {
+                OneTimePack.log(1, "Cannot register listener of " + listener.type().getName() + " in direction " + listener.direction().name());
+                if (OneTimePack.getLogLevel() >= 1) {
+                    t.printStackTrace();
+                }
+                return;
+            }
         }
+        OneTimePack.log(4, "The listener of " + listener.type().getName() + " was registered in direction " + listener.direction().name());
     }
 
     public void unregister() {

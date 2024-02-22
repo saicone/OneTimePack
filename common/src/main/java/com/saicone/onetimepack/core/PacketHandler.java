@@ -8,6 +8,7 @@ import com.saicone.onetimepack.core.packet.ResourcePackSend;
 import com.saicone.onetimepack.core.packet.ResourcePackStatus;
 import dev.simplix.protocolize.api.Direction;
 import dev.simplix.protocolize.api.PacketDirection;
+import dev.simplix.protocolize.api.Platform;
 import dev.simplix.protocolize.api.Protocol;
 import dev.simplix.protocolize.api.Protocolize;
 import dev.simplix.protocolize.api.mapping.ProtocolIdMapping;
@@ -34,13 +35,19 @@ public class PacketHandler {
         Class<?> startConfiguration = null;
         String name = null;
         try {
-            startConfiguration = Class.forName("net.md_5.bungee.protocol.packet.StartConfiguration");
-            name = "dev.simplix.protocolize.bungee.packet.BungeeCordProtocolizePacket";
-        } catch (ClassNotFoundException e) {
-            try {
-                startConfiguration = Class.forName("com.velocitypowered.proxy.protocol.packet.config.StartUpdate");
+            if (Protocolize.platform() == Platform.BUNGEECORD) {
+                startConfiguration = Class.forName("net.md_5.bungee.protocol.packet.StartConfiguration");
+                name = "dev.simplix.protocolize.bungee.packet.BungeeCordProtocolizePacket";
+            } else {
+                try {
+                    startConfiguration = Class.forName("com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket");
+                } catch (ClassNotFoundException e) {
+                    startConfiguration = Class.forName("com.velocitypowered.proxy.protocol.packet.config.StartUpdate");
+                }
                 name = "dev.simplix.protocolize.velocity.packet.VelocityProtocolizePacket";
-            } catch (ClassNotFoundException ignored) { }
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
         MethodHandle wrapper = null;
         try {
