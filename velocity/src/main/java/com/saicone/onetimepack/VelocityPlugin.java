@@ -7,7 +7,6 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
-import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
@@ -21,7 +20,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 
-@Plugin(id = "onetimepack", name = "OneTimePack", description = "Send the same resource pack only one time", version = "${version}", authors = "Rubenicos", dependencies = {@Dependency(id = "protocolize")})
+@Plugin(id = "onetimepack", name = "OneTimePack", description = "Send the same resource pack only one time", version = "${version}", authors = "Rubenicos", dependencies = {@Dependency(id = "packetevents")})
 public class VelocityPlugin implements OneTimePack.Provider {
 
     private static VelocityPlugin instance;
@@ -78,11 +77,6 @@ public class VelocityPlugin implements OneTimePack.Provider {
     }
 
     @Override
-    public int getProxyProtocol() {
-        return ProtocolVersion.MAXIMUM_VERSION.getProtocol();
-    }
-
-    @Override
     public void log(int level, @NotNull String s) {
         switch (level) {
             case 1:
@@ -95,11 +89,6 @@ public class VelocityPlugin implements OneTimePack.Provider {
                 getLogger().info(s);
                 break;
         }
-    }
-
-    @Override
-    public void run(@NotNull Runnable runnable, boolean async) {
-        getProxy().getScheduler().buildTask(this, runnable).schedule();
     }
 
     @NotNull

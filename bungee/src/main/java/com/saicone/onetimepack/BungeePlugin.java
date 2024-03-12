@@ -9,7 +9,6 @@ import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.event.EventHandler;
-import net.md_5.bungee.protocol.ProtocolConstants;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -56,11 +55,6 @@ public class BungeePlugin extends Plugin implements Listener, OneTimePack.Provid
     }
 
     @Override
-    public int getProxyProtocol() {
-        return ProtocolConstants.SUPPORTED_VERSION_IDS.get(ProtocolConstants.SUPPORTED_VERSION_IDS.size() - 1);
-    }
-
-    @Override
     public void log(int level, @NotNull String s) {
         switch (level) {
             case 1:
@@ -72,15 +66,6 @@ public class BungeePlugin extends Plugin implements Listener, OneTimePack.Provid
             default:
                 getLogger().log(Level.INFO, s);
                 break;
-        }
-    }
-
-    @Override
-    public void run(@NotNull Runnable runnable, boolean async) {
-        if (async) {
-            getProxy().getScheduler().runAsync(this, runnable);
-        } else {
-            runnable.run();
         }
     }
 

@@ -8,12 +8,14 @@ subprojects {
     apply plugin: 'com.github.johnrengelman.shadow'
 
     repositories {
-        maven { url 'https://mvn.exceptionflug.de/repository/exceptionflug-public/' }
+        maven { url 'https://repo.codemc.io/repository/maven-releases/' }
         mavenCentral()
     }
 
     dependencies {
-        compileOnly 'dev.simplix:protocolize-api:2.3.2'
+        compileOnly 'com.github.retrooper.packetevents:api:2.2.1'
+        compileOnly 'net.kyori:adventure-api:4.15.0'
+
         compileOnly 'org.jetbrains:annotations:24.0.1'
     }
 

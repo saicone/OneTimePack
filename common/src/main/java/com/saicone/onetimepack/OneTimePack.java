@@ -36,18 +36,17 @@ public class OneTimePack {
         }
         instance = this;
         this.provider = provider;
-        this.packetHandler = new PacketHandler(this);
+        this.packetHandler = new PacketHandler();
     }
 
     public void onLoad() {
         SETTINGS.load(provider.getPluginFolder());
-        logLevel = SETTINGS.getInt("Plugin.LogLevel", 2);
-        packetHandler.onLoad();
+        logLevel = SETTINGS.getInt("plugin.log-level", 2);
     }
 
     public void onReload() {
         SETTINGS.load(provider.getPluginFolder());
-        logLevel = SETTINGS.getInt("Plugin.LogLevel", 2);
+        logLevel = SETTINGS.getInt("plugin.log-level", 2);
         packetHandler.onReload();
     }
 
@@ -74,14 +73,6 @@ public class OneTimePack {
         @NotNull
         File getPluginFolder();
 
-        int getProxyProtocol();
-
         void log(int level, @NotNull String s);
-
-        default void run(@NotNull Runnable runnable) {
-            run(runnable, false);
-        }
-
-        void run(@NotNull Runnable runnable, boolean async);
     }
 }

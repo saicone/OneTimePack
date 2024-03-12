@@ -1,48 +1,48 @@
 package com.saicone.onetimepack.core;
 
-import com.saicone.onetimepack.core.packet.ResourcePackRemove;
-import com.saicone.onetimepack.core.packet.ResourcePackSend;
+import com.github.retrooper.packetevents.protocol.player.ClientVersion;
+import com.github.retrooper.packetevents.protocol.player.User;
+import com.saicone.onetimepack.core.packet.ResourcePackPop;
+import com.saicone.onetimepack.core.packet.ResourcePackPush;
 import com.saicone.onetimepack.core.packet.ResourcePackStatus;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.BiPredicate;
 
-import static dev.simplix.protocolize.api.util.ProtocolVersions.MINECRAFT_1_20_3;
-
-public class PacketPlayer {
+public class PacketUser {
 
     private static final UUID DUMMY_ID = new UUID(0, 0);
 
     private final UUID uniqueId;
-    private final int protocol;
+    private final boolean uniquePack;
 
-    private final transient boolean uniquePack;
-
-    private final Map<UUID, ResourcePackSend> cachedPacks = new LinkedHashMap<>();
+    private final Map<UUID, ResourcePackPush> cachedPacks = new LinkedHashMap<>();
     private final Map<UUID, ResourcePackStatus> cachedResults = new HashMap<>();
 
-    public PacketPlayer(UUID uniqueId, int protocol) {
+    public PacketUser(@NotNull User user) {
+        this(user.getUUID(), user.getClientVersion().isOlderThan(ClientVersion.V_1_20_3));
+    }
+
+    public PacketUser(@NotNull UUID uniqueId, boolean uniquePack) {
         this.uniqueId = uniqueId;
-        this.protocol = protocol;
-        this.uniquePack = protocol < MINECRAFT_1_20_3;
+        this.uniquePack = uniquePack;
     }
 
     public boolean isUniquePack() {
         return uniquePack;
     }
 
+    @NotNull
     public UUID getUniqueId() {
         return uniqueId;
     }
 
-    public int getProtocol() {
-        return protocol;
-    }
-
-    public ResourcePackSend getPack() {
+    @Nullable
+    public ResourcePackPush getPack() {
         if (cachedPacks.isEmpty()) {
             return null;
         }
@@ -52,10 +52,12 @@ public class PacketPlayer {
         return cachedPacks.entrySet().iterator().next().getValue();
     }
 
-    public Map<UUID, ResourcePackSend> getPacks() {
+    @NotNull
+    public Map<UUID, ResourcePackPush> getPacks() {
         return cachedPacks;
     }
 
+    @Nullable
     public ResourcePackStatus getResult() {
         if (cachedResults.isEmpty()) {
             return null;
@@ -66,14 +68,16 @@ public class PacketPlayer {
         return cachedResults.entrySet().iterator().next().getValue();
     }
 
-    public ResourcePackStatus getResult(UUID uniqueId) {
+    @Nullable
+    public ResourcePackStatus getResult(@Nullable UUID uniqueId) {
         if (uniquePack) {
             return cachedResults.get(DUMMY_ID);
         }
         return cachedResults.get(uniqueId);
     }
 
-    public ResourcePackStatus getResult(ResourcePackSend packet, ResourcePackStatus.Result defaultResult) {
+    @Nullable
+    public ResourcePackStatus getResult(@NotNull ResourcePackPush packet, @NotNull ProtocolOptions options) {
         ResourcePackStatus result;
         if (uniquePack) {
             result = cachedResults.get(DUMMY_ID);
@@ -82,11 +86,11 @@ public class PacketPlayer {
         } else {
             result = null;
         }
-        if (result == null && defaultResult != null) {
+        if (result == null && options.getDefaultStatus() != null) {
             if (uniquePack) {
-                result = new ResourcePackStatus(packet.getHash(), defaultResult);
+                result = new ResourcePackStatus(packet.getHash(), options.getDefaultStatus());
             } else if (packet.getUniqueId() != null) {
-                result = new ResourcePackStatus(packet.getUniqueId(), defaultResult);
+                result = new ResourcePackStatus(packet.getState(), packet.getUniqueId(), options.getDefaultStatus());
             } else {
                 return null;
             }
@@ -95,16 +99,16 @@ public class PacketPlayer {
         return result;
     }
 
-    public boolean contains(ResourcePackSend packet, BiPredicate<ResourcePackSend, ResourcePackSend> comparator) {
-        for (Map.Entry<UUID, ResourcePackSend> entry : cachedPacks.entrySet()) {
-            if (comparator.test(entry.getValue(), packet)) {
+    public boolean contains(@NotNull ResourcePackPush packet, @NotNull ProtocolOptions options) {
+        for (Map.Entry<UUID, ResourcePackPush> entry : cachedPacks.entrySet()) {
+            if (options.getComparator().matches(entry.getValue(), packet)) {
                 return true;
             }
         }
         return false;
     }
 
-    public void add(ResourcePackSend packet) {
+    public void add(@NotNull ResourcePackPush packet) {
         if (packet.getUniqueId() == null || uniquePack) {
             cachedPacks.put(DUMMY_ID, packet.copy());
         } else {
@@ -112,7 +116,7 @@ public class PacketPlayer {
         }
     }
 
-    public void add(ResourcePackStatus packet) {
+    public void add(@NotNull ResourcePackStatus packet) {
         if (packet.getUniqueId() == null || uniquePack) {
             cachedResults.put(DUMMY_ID, packet.copy());
         } else {
@@ -124,7 +128,7 @@ public class PacketPlayer {
         cachedPacks.clear();
     }
 
-    public void remove(ResourcePackSend packet) {
+    public void remove(@NotNull ResourcePackPush packet) {
         if (packet.getUniqueId() == null || uniquePack) {
             cachedPacks.remove(DUMMY_ID);
         } else {
@@ -132,7 +136,7 @@ public class PacketPlayer {
         }
     }
 
-    public void remove(ResourcePackRemove packet) {
+    public void remove(@NotNull ResourcePackPop packet) {
         if (!packet.hasUniqueId() || uniquePack) {
             cachedPacks.clear();
         } else {

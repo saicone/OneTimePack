@@ -13,9 +13,9 @@ repositories {
 dependencies {
     implementation project(':common')
 
-    compileOnly fileTree(dir: 'libs', includes: ['*.jar'])
-    compileOnly 'dev.simplix:protocolize-bungeecord:2.3.1'
     compileOnly('net.md-5:bungeecord-api:1.20-R0.2-SNAPSHOT') {
         exclude group: 'com.mojang'
     }
+
+    compileOnly 'com.github.retrooper.packetevents:bungeecord:2.2.1'
 }

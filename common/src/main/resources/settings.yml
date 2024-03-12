@@ -1,69 +1,62 @@
 # Plugin related configuration
-Plugin:
+plugin:
   # Log level to see messages in console:
   # 0 = disabled
   # 1 = errors
   # 2 = 1 + warnings
   # 3 = 2 + information
   # 4 = 3 + debug messages
-  LogLevel: 2
+  log-level: 2
 
-# Resource pack configuration
-Pack:
-  # Pack comparator:
-  # UUID   = Compare by unique ID (Only available for MC +1.20.3)
-  # URL    = Compare by download URL
-  # HASH   = Compare by 40 char hash ID
-  # PROMPT = Compare using the prompt message (Only available for MC +1.17)
-  # ALL    = Check is the two resource packs are equals
-  # ANY    = Don't compare, just cancel any other pack sending to player
-  # Use multiple comparisons with 'AND', or optional with 'OR'
-  # Add '!' to compare object only if it's not null
-  Comparator: !UUID OR !HASH OR URL
-  # Default pack status to send if player don't have any status saved:
-  # SUCCESS_DOWNLOAD = The pack was successfully downloaded, and it's active by the client
-  # DECLINED         = The pack was declined by the player
-  # FAILED_DOWNLOAD  = The client cannot download the pack correctly
-  # ACCEPTED         = The pack is currently downloading by the client
-  # DOWNLOADED       = The pack is already downloaded by the client (this status only appear if the client is on configuration screen)
-  # INVALID_URL      = The pack URL cannot be used to download the resource pack
-  # FAILED_RELOAD    = The pack was downloaded by the client, but cannot be reapplied
-  # DISCARDED        = The pack is already downloaded, but was ignored
-  # Set to 'none' to disable
-  Default-Status: none
-  # Pack behavior (Only for +1.20.3 clients):
-  # STACK    = Stack new resource pack into loaded packs
-  # OVERRIDE = Clear all loaded packs on detect new resource pack
-  Behavior:
-    # Pack behavior on PLAY protocol
-    Play: OVERRIDE
-    # Pack behavior on CONFIGURATION protocol
-    Configuration: STACK
-  # Allow or not resource pack re-sending
-  Send:
-    # Allow re-sending via PLAY protocol
-    Play: false
-    # Allow re-sending via CONFIGURATION protocol
-    Configuration: false
-  # Allow or not all resource packs can be cleared for +1.20.3 clients
-  Clear:
-    # Allow clear via PLAY protocol
-    # This option may generate problems with < 1.20.3 servers using ViaVersion
-    Play: false
-    # Allow clear via CONFIGURATION protocol
-    Configuration: true
-  # Allow or not resource packs can be removed for +1.20.3 clients
-  Remove:
-    # Allow remove via PLAY protocol
-    # This option may generate problems with severs using ItemsAdder
-    Play: false
-    # Allow remove via CONFIGURATION protocol
-    Configuration: true
+# Protocol state configuration
+protocol:
+  # default options to all protocols
+  default:
+    # Pack comparator:
+    # UUID   = Compare by unique ID (Only available for MC +1.20.3)
+    # URL    = Compare by download URL
+    # HASH   = Compare by 40 char hash ID
+    # PROMPT = Compare using the prompt message (Only available for MC +1.17)
+    # ALL    = Check is the two resource packs are equals
+    # ANY    = Don't compare, just cancel any other pack sending to player
+    # Use multiple comparisons with 'AND', or optional with 'OR'
+    # Add '!' to compare object only if it's not null
+    comparator: !UUID OR !HASH OR URL
+    # Default pack status to send if player don't have any status saved:
+    # SUCCESS_DOWNLOAD = The pack was successfully downloaded, and it's active by the client
+    # DECLINED         = The pack was declined by the player
+    # FAILED_DOWNLOAD  = The client cannot download the pack correctly
+    # ACCEPTED         = The pack is currently downloading by the client
+    # DOWNLOADED       = The pack is already downloaded by the client (this status only appear if the client is on configuration screen)
+    # INVALID_URL      = The pack URL cannot be used to download the resource pack
+    # FAILED_RELOAD    = The pack was downloaded by the client, but cannot be reapplied
+    # DISCARDED        = The pack is already downloaded, but was ignored
+    # Set to 'none' to disable
+    default-status: none
+    # Pack behavior (Only for +1.20.3 clients):
+    # STACK    = Stack new resource pack into loaded packs
+    # OVERRIDE = Clear all loaded packs on detect new resource pack
+    behavior: OVERRIDE
+    # Allow or not resource pack re-sending
+    send: false
+    # Allow or not resource pack remove for +1.20.3 clients
+    remove: true
+    # Allow or not all resource packs can be cleared for +1.20.3 clients
+    clear: true
+  # PLAY protocol options
+  play:
+    # Allow remove may generate problems with severs using ItemsAdder
+    remove: false
+    # Allow clear may generate problems with < 1.20.3 servers using ViaVersion
+    clear: false
+  # CONFIGURATION protocol options
+  configuration:
+    behavior: STACK
 
 # Experimental configuration
-Experimental:
-  # Send or not cached resource pack to 1.20.2 clients when configuration protocol starts
+experimental:
+  # Send or not cached resource pack to 1.20.2 clients when CONFIGURATION protocol starts
   # This option solve resource pack clear on server change, but will make 1.20.2 players to re-download resource pack every time they switch servers
-  Send-Cached-1-20-2: false
+  send-cached-1-20-2: false
   # Send or not invalid resource packs to clients
-  Send-Invalid: false
+  send-invalid: false

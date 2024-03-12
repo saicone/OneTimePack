@@ -1,235 +1,108 @@
 package com.saicone.onetimepack.core;
 
+import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.event.PacketListener;
+import com.github.retrooper.packetevents.event.PacketListenerPriority;
+import com.github.retrooper.packetevents.event.PacketReceiveEvent;
+import com.github.retrooper.packetevents.event.PacketSendEvent;
+import com.github.retrooper.packetevents.protocol.ConnectionState;
+import com.github.retrooper.packetevents.protocol.packettype.PacketType.Configuration;
+import com.github.retrooper.packetevents.protocol.packettype.PacketType.Play;
+import com.github.retrooper.packetevents.protocol.player.ClientVersion;
+import com.github.retrooper.packetevents.protocol.player.User;
 import com.saicone.onetimepack.OneTimePack;
-import com.saicone.onetimepack.core.packet.ResourcePackRemove;
-import com.saicone.onetimepack.module.listener.PacketListener;
-import com.saicone.onetimepack.module.Mappings;
-import com.saicone.onetimepack.core.packet.ResourcePackSend;
+import com.saicone.onetimepack.core.packet.ResourcePackPop;
+import com.saicone.onetimepack.core.packet.ResourcePackPush;
 import com.saicone.onetimepack.core.packet.ResourcePackStatus;
-import dev.simplix.protocolize.api.Direction;
-import dev.simplix.protocolize.api.PacketDirection;
-import dev.simplix.protocolize.api.Platform;
-import dev.simplix.protocolize.api.Protocol;
-import dev.simplix.protocolize.api.Protocolize;
-import dev.simplix.protocolize.api.mapping.ProtocolIdMapping;
-import dev.simplix.protocolize.api.packet.AbstractPacket;
-import dev.simplix.protocolize.api.player.ProtocolizePlayer;
+import com.saicone.onetimepack.util.ValueComparator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.util.*;
-import java.util.function.BiPredicate;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
-import static dev.simplix.protocolize.api.util.ProtocolVersions.*;
+public class PacketHandler implements PacketListener {
 
-public class PacketHandler {
+    private ProtocolOptions playOptions;
+    private ProtocolOptions configurationOptions;
 
-    private static final Class<?> START_CONFIGURATION;
-    private static final MethodHandle WRAPPER;
-
-    static {
-        Class<?> startConfiguration = null;
-        String name = null;
-        try {
-            if (Protocolize.platform() == Platform.BUNGEECORD) {
-                startConfiguration = Class.forName("net.md_5.bungee.protocol.packet.StartConfiguration");
-                name = "dev.simplix.protocolize.bungee.packet.BungeeCordProtocolizePacket";
-            } else {
-                try {
-                    startConfiguration = Class.forName("com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket");
-                } catch (ClassNotFoundException e) {
-                    startConfiguration = Class.forName("com.velocitypowered.proxy.protocol.packet.config.StartUpdate");
-                }
-                name = "dev.simplix.protocolize.velocity.packet.VelocityProtocolizePacket";
-            }
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        MethodHandle wrapper = null;
-        try {
-            final Class<?> packetClass = Class.forName(name);
-            wrapper = MethodHandles.lookup().unreflect(packetClass.getDeclaredMethod("wrapper", AbstractPacket.class));
-        } catch (ClassNotFoundException | IllegalAccessException | NoSuchMethodException e) {
-            e.printStackTrace();
-        }
-        START_CONFIGURATION = startConfiguration;
-        WRAPPER = wrapper;
-    }
-
-    private final OneTimePack plugin;
-
-    private PacketListener packetListener;
-    private BiPredicate<ResourcePackSend, ResourcePackSend> comparator;
-    private ResourcePackStatus.Result defaultStatus = null;
-    private PackBehavior behaviorPlay = PackBehavior.OVERRIDE;
-    private PackBehavior behaviorConfiguration = PackBehavior.STACK;
-    private boolean sendPlay = false;
-    private boolean sendConfiguration = true;
-    private boolean clearPlay = false;
-    private boolean clearConfiguration = true;
-    private boolean removePlay = false;
-    private boolean removeConfiguration = true;
     private boolean sendCached1_20_2 = false;
     private boolean sendInvalid = false;
 
-    private final Map<UUID, PacketPlayer> players = new HashMap<>();
+    private final Map<UUID, PacketUser> users = new HashMap<>();
 
-    public PacketHandler(@NotNull OneTimePack plugin) {
-        this.plugin = plugin;
-    }
-
-    public void onLoad() {
-        final Mappings mappings = new Mappings(plugin.getProvider().getPluginFolder(), "mappings.json");
-        mappings.load();
-        register(mappings, ResourcePackSend.class, ResourcePackSend::register);
-        register(mappings, ResourcePackRemove.class, ResourcePackRemove::register);
-        register(mappings, ResourcePackStatus.class, ResourcePackStatus::register);
+    public void onEnable() {
+        PacketEvents.getAPI().getEventManager().registerListener(this, PacketListenerPriority.LOWEST);
         onReload();
     }
 
+    public void onDisable() {
+        clear();
+    }
+
     public void onReload() {
-        final String packComparator = OneTimePack.SETTINGS.getString("Pack.Comparator", "!UUID OR HASH").toUpperCase();
-        final List<BiPredicate<ResourcePackSend, ResourcePackSend>> predicates = new ArrayList<>();
-        for (String block : packComparator.split(" AND ")) {
-            if (block.contains(" OR ")) {
-                final List<BiPredicate<ResourcePackSend, ResourcePackSend>> optionals = new ArrayList<>();
-                for (String optional : block.split(" OR ")) {
-                    final BiPredicate<ResourcePackSend, ResourcePackSend> predicate = ResourcePackSend.comparator(optional);
-                    if (predicate != null) {
-                        optionals.add(predicate);
-                    }
-                }
-                if (optionals.size() == 1) {
-                    predicates.add(optionals.get(0));
-                } else if (!optionals.isEmpty()) {
-                    predicates.add((pack1, pack2) -> {
-                        for (BiPredicate<ResourcePackSend, ResourcePackSend> optional : optionals) {
-                            if (optional.test(pack1, pack2)) {
-                                return true;
-                            }
-                        }
-                        return false;
-                    });
-                }
-            } else {
-                final BiPredicate<ResourcePackSend, ResourcePackSend> predicate = ResourcePackSend.comparator(block);
-                if (predicate != null) {
-                    predicates.add(predicate);
-                }
-            }
-        }
-
-        if (predicates.isEmpty()) {
-            comparator = (pack1, pack2) -> true;
-        } else if (predicates.size() == 1) {
-            comparator = predicates.get(0);
-        } else {
-            comparator = (pack1, pack2) -> {
-                for (BiPredicate<ResourcePackSend, ResourcePackSend> predicate : predicates) {
-                    if (!predicate.test(pack1, pack2)) {
-                        return false;
-                    }
-                }
-                return true;
-            };
-        }
-
-        defaultStatus = null;
-        final Object status = OneTimePack.SETTINGS.get("Pack.Default-Status");
-        if (status instanceof Number) {
-            final int num = ((Number) status).intValue();
-            if (num > 7) {
-                OneTimePack.log(2, "Default pack status cannot be a number upper than 7, so will be set as 'none'");
-            } else {
-                defaultStatus = num < 0 ? null : ResourcePackStatus.Result.VALUES[num];
-            }
-        } else if (status != null) {
-            final String name = String.valueOf(status).trim().toUpperCase().replace(' ', '_');
-            if (!name.equals("-1") && !name.equals("NONE")) {
-                for (ResourcePackStatus.Result result : ResourcePackStatus.Result.VALUES) {
-                    if (result.name().equals(name)) {
-                        defaultStatus = result;
-                        return;
-                    }
-                }
-                OneTimePack.log(2, "The pack status '" + status + "' is not a valid state");
-            }
-        }
-
-        behaviorPlay = PackBehavior.of(OneTimePack.SETTINGS.getString("Pack.Behavior.Play", "OVERRIDE"));
-        behaviorConfiguration = PackBehavior.of(OneTimePack.SETTINGS.getString("Pack.Behavior.Configuration", "STACK"));
-        sendPlay = OneTimePack.SETTINGS.getBoolean("Pack.Send.Play", false);
-        sendConfiguration = OneTimePack.SETTINGS.getBoolean("Pack.Send.Configuration", false);
-        clearPlay = OneTimePack.SETTINGS.getBoolean("Pack.Clear.Play", false);
-        if (clearPlay) {
+        playOptions = ProtocolOptions.of(ConnectionState.PLAY);
+        if (playOptions.allowClear()) {
             OneTimePack.log(2, "The resource pack clear was allowed to be used on PLAY protocol, " +
                     "take in count this option may generate problems with < 1.20.3 servers using ViaVersion");
         }
-        clearConfiguration = OneTimePack.SETTINGS.getBoolean("Pack.Clear.Configuration", true);
-        removePlay = OneTimePack.SETTINGS.getBoolean("Pack.Remove.Play", false);
-        removeConfiguration = OneTimePack.SETTINGS.getBoolean("Pack.Remove.Configuration", true);
-        sendCached1_20_2 = OneTimePack.SETTINGS.getBoolean("Experimental.Send-Cached-1-20-2", false);
+        if (playOptions.allowRemove()) {
+            OneTimePack.log(2, "The resource pack clear was allowed to be used on PLAY protocol, " +
+                    "take in count this option may generate problems with servers using ItemsAdder");
+        }
+        configurationOptions = ProtocolOptions.of(ConnectionState.CONFIGURATION);
+        sendCached1_20_2 = OneTimePack.SETTINGS.getBoolean("experimental.send-cached-1-20-2", false);
         if (sendCached1_20_2) {
             OneTimePack.log(2, "The cached resource pack was allowed to be re-sended to 1.20.2 clients, " +
                     "take in count this option will make 1.20.2 players to re-download resource pack on server switch");
         }
-        sendInvalid = OneTimePack.SETTINGS.getBoolean("Experimental.Send-Invalid", false);
+        sendInvalid = OneTimePack.SETTINGS.getBoolean("experimental.send-invalid", false);
         if (sendInvalid) {
             OneTimePack.log(3, "Invalid packs will be send to players");
         }
     }
 
-    public void onEnable() {
-        packetListener = new PacketListener();
-        if (START_CONFIGURATION != null) {
-            packetListener.registerSend(START_CONFIGURATION, Direction.UPSTREAM, event -> {
-                if (!sendCached1_20_2 || event.player().protocolVersion() >= MINECRAFT_1_20_3) {
-                    return;
-                }
-                final UUID uuid = event.player().uniqueId();
-                if (players.containsKey(uuid)) {
-                    OneTimePack.log(4, "The cached pack will be send for player due it's on configuration state");
-                    // Send with new thread due Protocolize catch StartConfiguration packet before proxy itself
-                    new Thread(() -> {
-                        for (Map.Entry<UUID, ResourcePackSend> entry : players.get(uuid).getPacks().entrySet()) {
-                            event.player().sendPacket(getWrappedPacket(
-                                    entry.getValue().asConfiguration(),
-                                    Protocol.CONFIGURATION,
-                                    PacketDirection.CLIENTBOUND,
-                                    event.player().protocolVersion()
-                            ));
-                        }
-                        OneTimePack.log(4, "Sent!");
-                    }).start();
-                }
-            });
+    @Override
+    public void onPacketReceive(PacketReceiveEvent event) {
+        if (event.getPacketType() == Play.Client.RESOURCE_PACK_STATUS || event.getPacketType() == Configuration.Client.RESOURCE_PACK_STATUS) {
+            final ResourcePackStatus packet = new ResourcePackStatus(event);
+            getPacketUser(event.getUser()).add(packet);
+            OneTimePack.log(4, "Saved cached result " + packet + " from user " + event.getUser().getUUID());
         }
-        packetListener.registerReceive(ResourcePackSend.Configuration.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackSend(event.player(), event.packet(), behaviorConfiguration, sendConfiguration)));
-        packetListener.registerReceive(ResourcePackSend.Play.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackSend(event.player(), event.packet(), behaviorPlay, sendPlay)));
-        packetListener.registerReceive(ResourcePackRemove.Configuration.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackRemove(event.player(), event.packet(), clearConfiguration, removeConfiguration)));
-        packetListener.registerReceive(ResourcePackRemove.Play.class, Direction.DOWNSTREAM, event -> event.cancelled(onPackRemove(event.player(), event.packet(), clearPlay, removePlay)));
-        packetListener.registerReceive(ResourcePackStatus.Configuration.class, Direction.UPSTREAM, event -> onPackStatus(event.player(), event.packet()));
-        packetListener.registerReceive(ResourcePackStatus.Play.class, Direction.UPSTREAM, event -> onPackStatus(event.player(), event.packet()));
     }
 
-    public void onDisable() {
-        if (packetListener != null) {
-            packetListener.unregister();
+    @Override
+    public void onPacketSend(PacketSendEvent event) {
+        if (event.getPacketType() == Play.Server.CONFIGURATION_START) {
+            if (!sendCached1_20_2 || event.getUser().getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_20_3)) {
+                return;
+            }
+            final UUID uuid = event.getUser().getUUID();
+            if (users.containsKey(uuid)) {
+                OneTimePack.log(4, "The cached pack will be send for player due it's on configuration state");
+                // Send with new thread due PacketEvents catch StartConfiguration packet before proxy itself
+                new Thread(() -> {
+                    for (Map.Entry<UUID, ResourcePackPush> entry : users.get(uuid).getPacks().entrySet()) {
+                        event.getUser().sendPacket(entry.getValue().as(PacketEvents.getAPI().getProtocolManager().getUser(event.getChannel()).getConnectionState()));
+                    }
+                    OneTimePack.log(4, "Sent!");
+                }).start();
+            }
+        } else if (event.getPacketType() == Configuration.Server.RESOURCE_PACK_SEND) {
+            onPackPush(event, new ResourcePackPush(event), configurationOptions);
+        } else if (event.getPacketType() == Play.Server.RESOURCE_PACK_SEND) {
+            onPackPush(event, new ResourcePackPush(event), playOptions);
+        } else if (event.getPacketType() == Configuration.Server.RESOURCE_PACK_REMOVE) {
+            onPackPop(event, new ResourcePackPop(event), configurationOptions);
+        } else if (event.getPacketType() == Play.Server.RESOURCE_PACK_REMOVE) {
+            onPackPop(event, new ResourcePackPop(event), playOptions);
         }
-        clear();
     }
 
-    private boolean onPackSend(@NotNull ProtocolizePlayer protocolizePlayer, @Nullable ResourcePackSend packet, @NotNull PackBehavior behavior, boolean allowSend) {
-        if (packet == null) {
-            OneTimePack.log(4, "The packet ResourcePackSend was null");
-            return !sendInvalid;
-        }
+    private void onPackPush(@NotNull PacketSendEvent event, @NotNull ResourcePackPush packet, @NotNull ProtocolOptions options) {
         if (OneTimePack.getLogLevel() >= 4) {
-            OneTimePack.log(4, "Received ResourcePackSend: " + packet);
+            OneTimePack.log(4, "Received ResourcePackPush: " + packet);
         }
 
         final String hash = packet.getHash();
@@ -239,133 +112,113 @@ public class PacketHandler {
                 OneTimePack.log(4, "The packet doesn't contains HASH, but invalid packs are allowed");
             } else {
                 OneTimePack.log(4, "Invalid packet HASH received, so will be cancelled");
-                return true;
+                event.setCancelled(true);
+                return;
             }
         }
 
-        final PacketPlayer player = getPacketPlayer(protocolizePlayer);
-        final UUID uuid = protocolizePlayer.uniqueId();
-        // Cancel resource pack re-sending to player
-        if (!allowSend && player.contains(packet, comparator)) {
-            OneTimePack.log(4, "Same resource pack received for player: " + player.getUniqueId());
-            // Re-send to server the actual resource pack status from player
-            plugin.getProvider().run(() -> {
-                final ResourcePackStatus cached = player.getResult(packet, defaultStatus);
+        final PacketUser user = getPacketUser(event.getUser());
+        if (!options.sendDuplicated() && user.contains(packet, options)) {
+            OneTimePack.log(4, "Same resource pack received for user: " + user.getUniqueId());
+            // Async operation
+            new Thread(() -> {
+                final ResourcePackStatus cached = user.getResult(packet, options);
                 if (cached == null) {
                     return;
                 }
-                if (packet.getProtocol() == Protocol.CONFIGURATION) {
-                    protocolizePlayer.sendPacketToServer(getWrappedPacket(
-                            cached.asConfiguration(),
-                            Protocol.CONFIGURATION,
-                            PacketDirection.SERVERBOUND,
-                            protocolizePlayer.protocolVersion()
-                    ));
-                } else {
-                    protocolizePlayer.sendPacketToServer(cached.asPlay());
-                }
+                // TODO: Test packet sending to server
+                PacketEvents.getAPI().getProtocolManager().sendPacket(event.getChannel(), cached.as(packet.getState()));
                 if (OneTimePack.getLogLevel() >= 4) {
-                    OneTimePack.log(4, "Sent cached result " + cached + " from player " + uuid);
+                    OneTimePack.log(4, "Sent cached result " + cached + " from user " + user.getUniqueId());
                 }
-            }, true);
-            return true;
+            }).start();
+            event.setCancelled(true);
+            return;
         }
 
         // Apply pack behavior for +1.20.3 client
-        if (!player.isUniquePack() && !player.getPacks().isEmpty()) {
-            OneTimePack.log(4, "Applying " + behavior.name() + " behavior...");
-            if (behavior == PackBehavior.OVERRIDE) {
-                player.clear();
-                if (packet.getProtocol() == Protocol.CONFIGURATION) {
-                    protocolizePlayer.sendPacket(getWrappedPacket(
-                            new ResourcePackRemove.Configuration(),
-                            Protocol.CONFIGURATION,
-                            PacketDirection.CLIENTBOUND,
-                            protocolizePlayer.protocolVersion()
-                    ));
-                } else {
-                    protocolizePlayer.sendPacket(new ResourcePackRemove.Play());
-                }
+        if (!user.isUniquePack() && !user.getPacks().isEmpty()) {
+            OneTimePack.log(4, "Applying " + options.getBehavior().name() + " behavior...");
+            if (options.getBehavior() == PackBehavior.OVERRIDE) {
+                user.clear();
+                event.getUser().sendPacket(new ResourcePackPop(packet.getState(), false, null));
             }
         }
 
-        player.add(packet);
-        OneTimePack.log(4, "Save packet on " + packet.getProtocol().name() + " protocol for player " + uuid);
-        return false;
+        user.add(packet);
+        OneTimePack.log(4, "Save packet on " + packet.getState().name() + " protocol for user " + user.getUniqueId());
     }
 
-    private boolean onPackRemove(@NotNull ProtocolizePlayer player, @Nullable ResourcePackRemove packet, boolean allowClear, boolean allowRemove) {
-        if (packet == null) {
-            OneTimePack.log(4, "The packet ResourcePackRemove was null");
-            return true;
-        }
-        if (!allowClear && !packet.hasUniqueId()) {
-            OneTimePack.log(4, "Cancelling packs clear from " + packet.getProtocol().name() + " protocol for player " + player.uniqueId());
-            return true;
-        }
-        if (!allowRemove) {
-            OneTimePack.log(4, "Cancelling pack remove from " + packet.getProtocol().name() + " protocol for player " + player.uniqueId());
-            return true;
-        }
-        getPacketPlayer(player).remove(packet);
-        OneTimePack.log(4, "Remove cached packet using: " + packet + " from player " + player.uniqueId());
-        return false;
-    }
-
-    private void onPackStatus(@NotNull ProtocolizePlayer player, @Nullable ResourcePackStatus packet) {
-        if (packet == null) {
-            OneTimePack.log(4, "The packet ResourcePackStatus was null");
+    private void onPackPop(@NotNull PacketSendEvent event, @NotNull ResourcePackPop packet, @NotNull ProtocolOptions options) {
+        if (!options.allowClear() && !packet.hasUniqueId()) {
+            OneTimePack.log(4, "Cancelling packs clear from " + packet.getState().name() + " protocol for user " + event.getUser().getUUID());
+            event.setCancelled(true);
             return;
         }
-        getPacketPlayer(player).add(packet);
-        OneTimePack.log(4, "Saved cached result: " + packet + " from player " + player.uniqueId());
+        if (!options.allowRemove()) {
+            OneTimePack.log(4, "Cancelling pack remove from " + packet.getState().name() + " protocol for user " + event.getUser().getUUID());
+            event.setCancelled(true);
+            return;
+        }
+        getPacketUser(event.getUser()).remove(packet);
+        OneTimePack.log(4, "Remove cached packet using " + packet + " from user " + event.getUser().getUUID());
     }
 
     @NotNull
-    public Map<UUID, PacketPlayer> getPlayers() {
-        return players;
+    public Map<UUID, PacketUser> getUsers() {
+        return users;
     }
 
     @NotNull
-    public PacketPlayer getPacketPlayer(@NotNull ProtocolizePlayer player) {
-        PacketPlayer packetPlayer = players.get(player.uniqueId());
-        if (packetPlayer == null) {
-            packetPlayer = new PacketPlayer(player.uniqueId(), player.protocolVersion());
-            players.put(player.uniqueId(), packetPlayer);
+    public PacketUser getPacketUser(@NotNull User user) {
+        PacketUser packetUser = users.get(user.getUUID());
+        if (packetUser == null) {
+            packetUser = new PacketUser(user);
+            users.put(user.getUUID(), packetUser);
         }
-        return packetPlayer;
+        return packetUser;
     }
 
-    @NotNull
-    public static Object getWrappedPacket(@NotNull AbstractPacket packet, @NotNull Protocol protocol, @NotNull PacketDirection direction, int protocolVersion) {
-        final Object wrapped = Protocolize.protocolRegistration().createPacket(packet.getClass(), protocol, direction, protocolVersion);
-        try {
-            WRAPPER.invoke(wrapped, packet);
-        } catch (Throwable t) {
-            t.printStackTrace();
+    @Nullable
+    public static ValueComparator<ResourcePackPush> getPackComparator(@NotNull String name) {
+        final boolean nonNull = name.charAt(0) == '!';
+        final ValueComparator<ResourcePackPush> comparator;
+        switch ((nonNull ? name.substring(1) : name).toUpperCase()) {
+            case "UUID":
+                comparator = ResourcePackPush::getUniqueId;
+                break;
+            case "URL":
+                comparator = ResourcePackPush::getUrl;
+                break;
+            case "HASH":
+                comparator = ResourcePackPush::getHash;
+                break;
+            case "PROMPT":
+                comparator = ResourcePackPush::getPrompt;
+                break;
+            case "ALL":
+                comparator = pack -> pack;
+                break;
+            case "ANY":
+                return pack -> true;
+            default:
+                OneTimePack.log(2, "The pack comparator '" + name + "' is not valid");
+                return null;
         }
-        return wrapped;
-    }
-
-    private <T extends AbstractPacket> void register(@NotNull Mappings mappings, @NotNull Class<T> clazz, @NotNull Consumer<Function<String, List<ProtocolIdMapping>>> consumer) {
-        if (!mappings.contains(clazz.getSimpleName())) {
-            consumer.accept(null);
-        } else {
-            consumer.accept(protocol -> mappings.getMappings(clazz.getSimpleName(), protocol));
-        }
+        return nonNull ? comparator.nonNull() : comparator;
     }
 
     public void clear() {
         OneTimePack.log(4, "The data from packet handler was cleared");
-        for (Map.Entry<UUID, PacketPlayer> entry : players.entrySet()) {
+        for (Map.Entry<UUID, PacketUser> entry : users.entrySet()) {
             entry.getValue().clear();
         }
-        players.clear();
+        users.clear();
     }
 
     public void clear(@NotNull UUID uuid) {
-        OneTimePack.log(4, "Removing data from player " + uuid);
-        final PacketPlayer player = players.remove(uuid);
+        OneTimePack.log(4, "Removing data from user " + uuid);
+        final PacketUser player = users.remove(uuid);
         if (player != null) {
             player.clear();
         }
