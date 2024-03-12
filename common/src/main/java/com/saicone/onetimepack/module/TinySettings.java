@@ -84,11 +84,11 @@ public class TinySettings {
     }
 
     public boolean getBoolean(@NotNull String path, boolean def) {
-        if (String.valueOf(get(path)).equalsIgnoreCase("true")) {
-            return true;
-        } else {
+        final Object object = get(path);
+        if (object == null) {
             return def;
         }
+        return String.valueOf(object).equalsIgnoreCase("true");
     }
 
     public void load(@NotNull File folder) {

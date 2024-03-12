@@ -48,7 +48,7 @@ public class PacketHandler implements PacketListener {
                     "take in count this option may generate problems with < 1.20.3 servers using ViaVersion");
         }
         if (playOptions.allowRemove()) {
-            OneTimePack.log(2, "The resource pack clear was allowed to be used on PLAY protocol, " +
+            OneTimePack.log(2, "The resource pack remove was allowed to be used on PLAY protocol, " +
                     "take in count this option may generate problems with servers using ItemsAdder");
         }
         configurationOptions = ProtocolOptions.of(ConnectionState.CONFIGURATION);
