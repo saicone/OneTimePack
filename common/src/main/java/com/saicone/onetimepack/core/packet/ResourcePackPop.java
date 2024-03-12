@@ -19,8 +19,9 @@ public class ResourcePackPop extends PacketWrapper<ResourcePackPop> implements C
     private UUID uniqueId;
 
     public ResourcePackPop(@NotNull PacketSendEvent event) {
-        super(event);
+        super(event, false);
         this.state = event.getPacketType() == PacketType.Configuration.Server.RESOURCE_PACK_REMOVE ? ConnectionState.CONFIGURATION : ConnectionState.PLAY;
+        read();
     }
 
     public ResourcePackPop(@NotNull ConnectionState state, boolean hasUniqueId, @Nullable UUID uniqueId) {

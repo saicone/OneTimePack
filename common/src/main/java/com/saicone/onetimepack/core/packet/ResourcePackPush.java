@@ -4,6 +4,7 @@ import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.protocol.ConnectionState;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.util.adventure.AdventureSerializer;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import com.saicone.onetimepack.OneTimePack;
 import net.kyori.adventure.text.Component;
@@ -29,8 +30,9 @@ public class ResourcePackPush extends PacketWrapper<ResourcePackPush> implements
     private Component prompt;
 
     public ResourcePackPush(@NotNull PacketSendEvent event) {
-        super(event);
+        super(event, false);
         this.state = event.getPacketType() == PacketType.Configuration.Server.RESOURCE_PACK_SEND ? ConnectionState.CONFIGURATION : ConnectionState.PLAY;
+        read();
     }
 
     public ResourcePackPush(@Nullable String url, @Nullable String hash) {
@@ -206,7 +208,7 @@ public class ResourcePackPush extends PacketWrapper<ResourcePackPush> implements
                 ", hash='" + hash + '\'' +
                 ", forced=" + forced +
                 ", hasPromptMessage=" + hasPromptMessage +
-                (hasPromptMessage ? ", promptMessage='" + prompt + '\'' : "") +
+                (hasPromptMessage ? ", promptMessage='" + AdventureSerializer.toJson(prompt) + '\'' : "") +
                 '}';
     }
 }

@@ -81,13 +81,13 @@ public class PacketHandler implements PacketListener {
             final UUID uuid = event.getUser().getUUID();
             if (users.containsKey(uuid)) {
                 OneTimePack.log(4, "The cached pack will be send for player due it's on configuration state");
-                // Send with new thread due PacketEvents catch StartConfiguration packet before proxy itself
-                new Thread(() -> {
+                event.getPostTasks().add(() -> {
+                    if (event.isCancelled()) return;
                     for (Map.Entry<UUID, ResourcePackPush> entry : users.get(uuid).getPacks().entrySet()) {
                         event.getUser().sendPacket(entry.getValue().as(PacketEvents.getAPI().getProtocolManager().getUser(event.getChannel()).getConnectionState()));
                     }
                     OneTimePack.log(4, "Sent!");
-                }).start();
+                });
             }
         } else if (event.getPacketType() == Configuration.Server.RESOURCE_PACK_SEND) {
             onPackPush(event, new ResourcePackPush(event), configurationOptions);
@@ -152,12 +152,12 @@ public class PacketHandler implements PacketListener {
     private void onPackPop(@NotNull PacketSendEvent event, @NotNull ResourcePackPop packet, @NotNull ProtocolOptions options) {
         if (!options.allowClear() && !packet.hasUniqueId()) {
             OneTimePack.log(4, "Cancelling packs clear from " + packet.getState().name() + " protocol for user " + event.getUser().getUUID());
-            event.setCancelled(true);
+            event.setCancelled(users.containsKey(event.getUser().getUUID()));
             return;
         }
         if (!options.allowRemove()) {
             OneTimePack.log(4, "Cancelling pack remove from " + packet.getState().name() + " protocol for user " + event.getUser().getUUID());
-            event.setCancelled(true);
+            event.setCancelled(users.containsKey(event.getUser().getUUID()));
             return;
         }
         getPacketUser(event.getUser()).remove(packet);

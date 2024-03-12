@@ -31,8 +31,9 @@ public class ResourcePackStatus extends PacketWrapper<ResourcePackStatus> implem
     private Result result;
 
     public ResourcePackStatus(@NotNull PacketReceiveEvent event) {
-        super(event);
+        super(event, false);
         this.state = event.getPacketType() == PacketType.Configuration.Client.RESOURCE_PACK_STATUS ? ConnectionState.CONFIGURATION : ConnectionState.PLAY;
+        read();
     }
 
     public ResourcePackStatus(@NotNull Result result) {
