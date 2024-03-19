@@ -1,3 +1,10 @@
 rootProject.name = 'OneTimePack'
 
-include('common', 'bungee', 'velocity')
+// Common project
+include 'common'
+
+// Platforms
+include(
+        'platform:platform-bungee',
+        'platform:platform-velocity'
+)
