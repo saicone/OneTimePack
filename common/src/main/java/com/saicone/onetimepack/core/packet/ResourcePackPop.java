@@ -21,7 +21,7 @@ public class ResourcePackPop extends PacketWrapper<ResourcePackPop> implements C
     public ResourcePackPop(@NotNull PacketSendEvent event) {
         super(event, false);
         this.state = event.getPacketType() == PacketType.Configuration.Server.RESOURCE_PACK_REMOVE ? ConnectionState.CONFIGURATION : ConnectionState.PLAY;
-        read();
+        readEvent(event);
     }
 
     public ResourcePackPop(@NotNull ConnectionState state, boolean hasUniqueId, @Nullable UUID uniqueId) {
@@ -83,14 +83,6 @@ public class ResourcePackPop extends PacketWrapper<ResourcePackPop> implements C
     public void copy(ResourcePackPop wrapper) {
         hasUniqueId = wrapper.hasUniqueId;
         uniqueId = wrapper.uniqueId;
-    }
-
-    @Override
-    public @NotNull ResourcePackPop as(@NotNull ConnectionState state) {
-        if (this.state == state) {
-            return this;
-        }
-        return new ResourcePackPop(state, hasUniqueId, uniqueId);
     }
 
     @Override

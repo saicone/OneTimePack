@@ -32,7 +32,7 @@ public class ResourcePackPush extends PacketWrapper<ResourcePackPush> implements
     public ResourcePackPush(@NotNull PacketSendEvent event) {
         super(event, false);
         this.state = event.getPacketType() == PacketType.Configuration.Server.RESOURCE_PACK_SEND ? ConnectionState.CONFIGURATION : ConnectionState.PLAY;
-        read();
+        readEvent(event);
     }
 
     public ResourcePackPush(@Nullable String url, @Nullable String hash) {
@@ -164,14 +164,6 @@ public class ResourcePackPush extends PacketWrapper<ResourcePackPush> implements
         forced = wrapper.forced;
         hasPromptMessage = wrapper.hasPromptMessage;
         prompt = wrapper.prompt;
-    }
-
-    @Override
-    public @NotNull ResourcePackPush as(@NotNull ConnectionState state) {
-        if (this.state == state) {
-            return this;
-        }
-        return new ResourcePackPush(state, uniqueId, url, hash, forced, hasPromptMessage, prompt);
     }
 
     @Override

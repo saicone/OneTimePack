@@ -33,7 +33,7 @@ public class ResourcePackStatus extends PacketWrapper<ResourcePackStatus> implem
     public ResourcePackStatus(@NotNull PacketReceiveEvent event) {
         super(event, false);
         this.state = event.getPacketType() == PacketType.Configuration.Client.RESOURCE_PACK_STATUS ? ConnectionState.CONFIGURATION : ConnectionState.PLAY;
-        read();
+        readEvent(event);
     }
 
     public ResourcePackStatus(@NotNull Result result) {
@@ -131,14 +131,6 @@ public class ResourcePackStatus extends PacketWrapper<ResourcePackStatus> implem
         uniqueId = wrapper.uniqueId;
         hash = wrapper.hash;
         result = wrapper.result;
-    }
-
-    @Override
-    public @NotNull ResourcePackStatus as(@NotNull ConnectionState state) {
-        if (this.state == state) {
-            return this;
-        }
-        return new ResourcePackStatus(state, uniqueId, hash, result);
     }
 
     @Override

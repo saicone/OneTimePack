@@ -12,5 +12,12 @@ public interface CommonPacketWrapper<T extends CommonPacketWrapper<T>> {
     T copy();
 
     @NotNull
-    T as(@NotNull ConnectionState state);
+    @SuppressWarnings("unchecked")
+    default T as(@NotNull ConnectionState state) {
+        if (getState() == state) {
+            return (T) this;
+        } else {
+            return copy();
+        }
+    }
 }

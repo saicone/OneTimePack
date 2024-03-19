@@ -77,15 +77,8 @@ public class PacketUser {
     }
 
     @Nullable
-    public ResourcePackStatus getResult(@NotNull ResourcePackPush packet, @NotNull ProtocolOptions options) {
-        ResourcePackStatus result;
-        if (uniquePack) {
-            result = cachedResults.get(DUMMY_ID);
-        } else if (packet.getUniqueId() != null) {
-            result = cachedResults.get(packet.getUniqueId());
-        } else {
-            result = null;
-        }
+    public ResourcePackStatus getResult(@NotNull UUID id, @NotNull ResourcePackPush packet, @NotNull ProtocolOptions options) {
+        ResourcePackStatus result = cachedResults.get(id);
         if (result == null && options.getDefaultStatus() != null) {
             if (uniquePack) {
                 result = new ResourcePackStatus(packet.getHash(), options.getDefaultStatus());
@@ -99,13 +92,19 @@ public class PacketUser {
         return result;
     }
 
-    public boolean contains(@NotNull ResourcePackPush packet, @NotNull ProtocolOptions options) {
+    @NotNull
+    public Map<UUID, ResourcePackStatus> getResults() {
+        return cachedResults;
+    }
+
+    @Nullable
+    public UUID contains(@NotNull ResourcePackPush packet, @NotNull ProtocolOptions options) {
         for (Map.Entry<UUID, ResourcePackPush> entry : cachedPacks.entrySet()) {
             if (options.getComparator().matches(entry.getValue(), packet)) {
-                return true;
+                return entry.getKey();
             }
         }
-        return false;
+        return null;
     }
 
     public void add(@NotNull ResourcePackPush packet) {

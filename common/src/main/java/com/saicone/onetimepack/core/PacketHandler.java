@@ -1,10 +1,7 @@
 package com.saicone.onetimepack.core;
 
 import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.event.PacketListener;
-import com.github.retrooper.packetevents.event.PacketListenerPriority;
-import com.github.retrooper.packetevents.event.PacketReceiveEvent;
-import com.github.retrooper.packetevents.event.PacketSendEvent;
+import com.github.retrooper.packetevents.event.*;
 import com.github.retrooper.packetevents.protocol.ConnectionState;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType.Configuration;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType.Play;
@@ -33,6 +30,8 @@ public class PacketHandler implements PacketListener {
     private final Map<UUID, PacketUser> users = new HashMap<>();
 
     public void onEnable() {
+        // IDK why is this enabled by default
+        PacketEvents.getAPI().getSettings().debug(false);
         PacketEvents.getAPI().getEventManager().registerListener(this, PacketListenerPriority.LOWEST);
         onReload();
     }
@@ -84,7 +83,9 @@ public class PacketHandler implements PacketListener {
                 event.getPostTasks().add(() -> {
                     if (event.isCancelled()) return;
                     for (Map.Entry<UUID, ResourcePackPush> entry : users.get(uuid).getPacks().entrySet()) {
-                        event.getUser().sendPacket(entry.getValue().as(PacketEvents.getAPI().getProtocolManager().getUser(event.getChannel()).getConnectionState()));
+                        final ResourcePackPush packet = entry.getValue().as(event.getUser().getConnectionState());
+                        packet.setClientVersion(event.getUser().getClientVersion());
+                        event.getUser().sendPacket(packet);
                     }
                     OneTimePack.log(4, "Sent!");
                 });
@@ -118,18 +119,21 @@ public class PacketHandler implements PacketListener {
         }
 
         final PacketUser user = getPacketUser(event.getUser());
-        if (!options.sendDuplicated() && user.contains(packet, options)) {
+        final UUID packId;
+        if (!options.sendDuplicated() && (packId = user.contains(packet, options)) != null) {
             OneTimePack.log(4, "Same resource pack received for user: " + user.getUniqueId());
             // Async operation
             new Thread(() -> {
-                final ResourcePackStatus cached = user.getResult(packet, options);
-                if (cached == null) {
-                    return;
-                }
-                // TODO: Test packet sending to server
-                PacketEvents.getAPI().getProtocolManager().sendPacket(event.getChannel(), cached.as(packet.getState()));
-                if (OneTimePack.getLogLevel() >= 4) {
-                    OneTimePack.log(4, "Sent cached result " + cached + " from user " + user.getUniqueId());
+                ResourcePackStatus cached = user.getResult(packId, packet, options);
+                if (cached != null) {
+                    cached = cached.as(packet.getState());
+                    cached.setClientVersion(packet.getClientVersion());
+                    event.getUser().writePacket(cached);
+                    if (OneTimePack.getLogLevel() >= 4) {
+                        OneTimePack.log(4, "Sent cached result " + cached + " from user " + user.getUniqueId());
+                    }
+                } else {
+                    OneTimePack.log(2, "The user " + user.getUniqueId() + " doesn't have any cached resource pack status");
                 }
             }).start();
             event.setCancelled(true);
@@ -152,12 +156,12 @@ public class PacketHandler implements PacketListener {
     private void onPackPop(@NotNull PacketSendEvent event, @NotNull ResourcePackPop packet, @NotNull ProtocolOptions options) {
         if (!options.allowClear() && !packet.hasUniqueId()) {
             OneTimePack.log(4, "Cancelling packs clear from " + packet.getState().name() + " protocol for user " + event.getUser().getUUID());
-            event.setCancelled(users.containsKey(event.getUser().getUUID()));
+            event.setCancelled(true);
             return;
         }
         if (!options.allowRemove()) {
             OneTimePack.log(4, "Cancelling pack remove from " + packet.getState().name() + " protocol for user " + event.getUser().getUUID());
-            event.setCancelled(users.containsKey(event.getUser().getUUID()));
+            event.setCancelled(true);
             return;
         }
         getPacketUser(event.getUser()).remove(packet);
