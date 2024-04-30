@@ -16,6 +16,7 @@ dependencies {
     implementation project(':platform:platform-velocity')
     implementation project(':module:module-packetevents')
     compileOnly libs.velocity.api
+    annotationProcessor libs.velocity.api
     compileOnly libs.packetevents.api
     compileOnly libs.packetevents.velocity
 }

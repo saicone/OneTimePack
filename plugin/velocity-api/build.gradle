@@ -15,6 +15,7 @@ dependencies {
     implementation project(':platform:platform-velocity')
     implementation project(':module:module-velocity')
     compileOnly libs.velocity.api
+    annotationProcessor libs.velocity.api
 }
 
 java {
