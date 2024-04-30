@@ -1,5 +1,6 @@
 package com.saicone.onetimepack;
 
+import com.saicone.onetimepack.core.Processor;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -23,8 +24,13 @@ public class BungeePlugin extends Plugin implements Listener, OneTimePack.Provid
     }
 
     public BungeePlugin() {
-        new OneTimePack(this);
         instance = this;
+        new OneTimePack(this, initProcessor());
+    }
+
+    @NotNull
+    protected Processor<?, ?> initProcessor() {
+        throw new RuntimeException("Bungeecord plugin not implemented");
     }
 
     @Override

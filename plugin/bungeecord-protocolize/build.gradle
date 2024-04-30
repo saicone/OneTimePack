@@ -1,0 +1,22 @@
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    from(sourceSets.main.resources.srcDirs) {
+        include '**/*.yml'
+        expand(project.properties)
+    }
+}
+
+repositories {
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+    maven { url 'https://mvn.exceptionflug.de/repository/exceptionflug-public/' }
+}
+
+dependencies {
+    implementation project(':platform:platform-bungee')
+    implementation project(':module:module-protocolize')
+    compileOnly(libs.bungeecord.api) {
+        exclude group: 'com.mojang'
+    }
+    compileOnly libs.protocolize.api
+    compileOnly libs.protocolize.bungeecord
+}

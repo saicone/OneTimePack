@@ -1,21 +1,9 @@
-processResources {
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
-    from(sourceSets.main.resources.srcDirs) {
-        include '**/*.yml'
-        expand(project.properties)
-    }
-}
-
 repositories {
     maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
 }
 
 dependencies {
-    implementation project(':common')
-
-    compileOnly('net.md-5:bungeecord-api:1.20-R0.2-SNAPSHOT') {
+    compileOnly(libs.bungeecord.api) {
         exclude group: 'com.mojang'
     }
-
-    compileOnly 'com.github.retrooper.packetevents:bungeecord:2.2.1'
 }

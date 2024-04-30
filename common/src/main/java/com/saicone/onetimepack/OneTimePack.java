@@ -1,6 +1,6 @@
 package com.saicone.onetimepack;
 
-import com.saicone.onetimepack.core.PacketHandler;
+import com.saicone.onetimepack.core.Processor;
 import com.saicone.onetimepack.module.TinySettings;
 import org.jetbrains.annotations.NotNull;
 
@@ -13,7 +13,7 @@ public class OneTimePack {
     private static int logLevel = 2;
 
     private final Provider provider;
-    private final PacketHandler packetHandler;
+    private final Processor<?, ?> processor;
 
     @NotNull
     public static OneTimePack get() {
@@ -30,32 +30,33 @@ public class OneTimePack {
         }
     }
 
-    public OneTimePack(@NotNull Provider provider) {
+    public OneTimePack(@NotNull Provider provider, @NotNull Processor<?, ?> processor) {
         if (instance != null) {
             throw new RuntimeException(OneTimePack.class.getSimpleName() + " is already initialized");
         }
         instance = this;
         this.provider = provider;
-        this.packetHandler = new PacketHandler();
+        this.processor = processor;
     }
 
     public void onLoad() {
         SETTINGS.load(provider.getPluginFolder());
         logLevel = SETTINGS.getInt("plugin.log-level", 2);
+        processor.load();
     }
 
     public void onReload() {
         SETTINGS.load(provider.getPluginFolder());
         logLevel = SETTINGS.getInt("plugin.log-level", 2);
-        packetHandler.onReload();
+        processor.reload();
     }
 
     public void onEnable() {
-        packetHandler.onEnable();
+        processor.enable();
     }
 
     public void onDisable() {
-        packetHandler.onDisable();
+        processor.disable();
     }
 
     @NotNull
@@ -64,8 +65,8 @@ public class OneTimePack {
     }
 
     @NotNull
-    public PacketHandler getPacketHandler() {
-        return packetHandler;
+    public Processor<?, ?> getPacketHandler() {
+        return processor;
     }
 
     public interface Provider {

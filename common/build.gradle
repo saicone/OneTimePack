@@ -1,5 +1,5 @@
 dependencies {
-    compileOnly 'io.netty:netty-buffer:4.1.72.Final'
-    compileOnly 'com.google.code.gson:gson:2.8.8'
-    compileOnly 'com.google.guava:guava:31.0.1-jre'
+    compileOnly libs.netty
+    compileOnly libs.gson
+    compileOnly libs.guava
 }

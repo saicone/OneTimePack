@@ -1,31 +1,30 @@
 package com.saicone.onetimepack.core;
 
-import com.github.retrooper.packetevents.protocol.ConnectionState;
 import com.saicone.onetimepack.OneTimePack;
-import com.saicone.onetimepack.core.packet.ResourcePackPush;
-import com.saicone.onetimepack.core.packet.ResourcePackStatus;
 import com.saicone.onetimepack.module.TinySettings;
 import com.saicone.onetimepack.util.ValueComparator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ProtocolOptions {
+import java.util.function.Function;
 
-    private final ValueComparator<ResourcePackPush> comparator;
-    private final ResourcePackStatus.Result defaultStatus;
+public class ProtocolOptions<PackT> {
+
+    private final ValueComparator<PackT> comparator;
+    private final PackResult defaultStatus;
     private final PackBehavior behavior;
     private final boolean send;
     private final boolean clear;
     private final boolean remove;
 
     @NotNull
-    public static ProtocolOptions of(@NotNull ConnectionState state) {
+    public static <T> ProtocolOptions<T> of(@NotNull ProtocolState state, @NotNull Function<String, ValueComparator<T>> provider) {
         final TinySettings config = OneTimePack.SETTINGS;
         final String path = "protocol." + state.name().toLowerCase() + ".";
         final String def = "protocol.default.";
-        return new ProtocolOptions(
-                ValueComparator.read(config.getString(path + "comparator", config.getString(def + "comparator", "!UUID OR !HASH OR URL")), PacketHandler::getPackComparator),
-                ResourcePackStatus.Result.of(config.getString(path + "default-status", config.getString(def + "default-status", "none")), null),
+        return new ProtocolOptions<T>(
+                ValueComparator.read(config.getString(path + "comparator", config.getString(def + "comparator", "!UUID OR !HASH OR URL")), provider),
+                PackResult.of(config.getString(path + "default-status", config.getString(def + "default-status", "none")), null),
                 PackBehavior.of(config.getString(path + "behavior", config.getString(def + "behavior", "OVERRIDE"))),
                 config.getBoolean(path + "send", config.getBoolean(def + "send", false)),
                 config.getBoolean(path + "clear", config.getBoolean(def + "clear", false)),
@@ -33,7 +32,7 @@ public class ProtocolOptions {
         );
     }
 
-    public ProtocolOptions(@NotNull ValueComparator<ResourcePackPush> comparator, @Nullable ResourcePackStatus.Result defaultStatus, @NotNull PackBehavior behavior, boolean send, boolean clear, boolean remove) {
+    public ProtocolOptions(@NotNull ValueComparator<PackT> comparator, @Nullable PackResult defaultStatus, @NotNull PackBehavior behavior, boolean send, boolean clear, boolean remove) {
         this.comparator = comparator;
         this.defaultStatus = defaultStatus;
         this.behavior = behavior;
@@ -43,12 +42,12 @@ public class ProtocolOptions {
     }
 
     @NotNull
-    public ValueComparator<ResourcePackPush> getComparator() {
+    public ValueComparator<PackT> getComparator() {
         return comparator;
     }
 
     @Nullable
-    public ResourcePackStatus.Result getDefaultStatus() {
+    public PackResult getDefaultStatus() {
         return defaultStatus;
     }
 

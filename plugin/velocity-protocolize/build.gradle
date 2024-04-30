@@ -1,0 +1,28 @@
+plugins {
+    alias libs.plugins.blossom
+}
+
+blossom {
+    replaceTokenIn('src/main/java/com/saicone/onetimepack/VelocityBootstrap.java')
+    replaceToken '${version}', project.version
+}
+
+repositories {
+    maven { url 'https://repo.papermc.io/repository/maven-public/' }
+    maven { url 'https://maven.elytrium.net/repo/' }
+    maven { url 'https://mvn.exceptionflug.de/repository/exceptionflug-public/' }
+}
+
+dependencies {
+    implementation project(':platform:platform-velocity')
+    implementation project(':module:module-protocolize')
+    compileOnly libs.velocity.api
+    compileOnly libs.velocity.proxy
+    compileOnly libs.protocolize.api
+    compileOnly libs.protocolize.velocity
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}

@@ -3,8 +3,24 @@ rootProject.name = 'OneTimePack'
 // Common project
 include 'common'
 
+// Modules
+include(
+        'module:module-packetevents',
+        'module:module-protocolize',
+        'module:module-velocity'
+)
+
 // Platforms
 include(
         'platform:platform-bungee',
         'platform:platform-velocity'
+)
+
+// Plugin types
+include(
+        'plugin:bungeecord-packetevents',
+        'plugin:bungeecord-protocolize',
+        'plugin:velocity-api',
+        'plugin:velocity-packetevents',
+        'plugin:velocity-protocolize'
 )

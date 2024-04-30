@@ -1,0 +1,22 @@
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    from(sourceSets.main.resources.srcDirs) {
+        include '**/*.yml'
+        expand(project.properties)
+    }
+}
+
+repositories {
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+    maven { url 'https://repo.codemc.io/repository/maven-releases/' }
+}
+
+dependencies {
+    implementation project(':platform:platform-bungee')
+    implementation project(':module:module-packetevents')
+    compileOnly(libs.bungeecord.api) {
+        exclude group: 'com.mojang'
+    }
+    compileOnly libs.packetevents.api
+    compileOnly libs.packetevents.bungeecord
+}

@@ -1,10 +1,5 @@
 package com.saicone.onetimepack.core;
 
-import com.github.retrooper.packetevents.protocol.player.ClientVersion;
-import com.github.retrooper.packetevents.protocol.player.User;
-import com.saicone.onetimepack.core.packet.ResourcePackPop;
-import com.saicone.onetimepack.core.packet.ResourcePackPush;
-import com.saicone.onetimepack.core.packet.ResourcePackStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -13,19 +8,15 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class PacketUser {
+public class PacketUser<PackT> {
 
     private static final UUID DUMMY_ID = new UUID(0, 0);
 
     private final UUID uniqueId;
     private final boolean uniquePack;
 
-    private final Map<UUID, ResourcePackPush> cachedPacks = new LinkedHashMap<>();
-    private final Map<UUID, ResourcePackStatus> cachedResults = new HashMap<>();
-
-    public PacketUser(@NotNull User user) {
-        this(user.getUUID(), user.getClientVersion().isOlderThan(ClientVersion.V_1_20_3));
-    }
+    private final Map<UUID, PackT> cachedPacks = new LinkedHashMap<>();
+    private final Map<UUID, PackResult> cachedResults = new HashMap<>();
 
     public PacketUser(@NotNull UUID uniqueId, boolean uniquePack) {
         this.uniqueId = uniqueId;
@@ -42,7 +33,7 @@ public class PacketUser {
     }
 
     @Nullable
-    public ResourcePackPush getPack() {
+    public PackT getPack() {
         if (cachedPacks.isEmpty()) {
             return null;
         }
@@ -53,12 +44,12 @@ public class PacketUser {
     }
 
     @NotNull
-    public Map<UUID, ResourcePackPush> getPacks() {
+    public Map<UUID, PackT> getPacks() {
         return cachedPacks;
     }
 
     @Nullable
-    public ResourcePackStatus getResult() {
+    public PackResult getResult() {
         if (cachedResults.isEmpty()) {
             return null;
         }
@@ -69,7 +60,7 @@ public class PacketUser {
     }
 
     @Nullable
-    public ResourcePackStatus getResult(@Nullable UUID uniqueId) {
+    public PackResult getResult(@Nullable UUID uniqueId) {
         if (uniquePack) {
             return cachedResults.get(DUMMY_ID);
         }
@@ -77,29 +68,18 @@ public class PacketUser {
     }
 
     @Nullable
-    public ResourcePackStatus getResult(@NotNull UUID id, @NotNull ResourcePackPush packet, @NotNull ProtocolOptions options) {
-        ResourcePackStatus result = cachedResults.get(id);
-        if (result == null && options.getDefaultStatus() != null) {
-            if (uniquePack) {
-                result = new ResourcePackStatus(packet.getHash(), options.getDefaultStatus());
-            } else if (packet.getUniqueId() != null) {
-                result = new ResourcePackStatus(packet.getState(), packet.getUniqueId(), options.getDefaultStatus());
-            } else {
-                return null;
-            }
-            add(result);
-        }
-        return result;
+    public PackResult getResult(@NotNull UUID id, @NotNull ProtocolOptions<PackT> options) {
+        return cachedResults.getOrDefault(id, options.getDefaultStatus());
     }
 
     @NotNull
-    public Map<UUID, ResourcePackStatus> getResults() {
+    public Map<UUID, PackResult> getResults() {
         return cachedResults;
     }
 
     @Nullable
-    public UUID contains(@NotNull ResourcePackPush packet, @NotNull ProtocolOptions options) {
-        for (Map.Entry<UUID, ResourcePackPush> entry : cachedPacks.entrySet()) {
+    public UUID contains(@NotNull PackT packet, @NotNull ProtocolOptions<PackT> options) {
+        for (Map.Entry<UUID, PackT> entry : cachedPacks.entrySet()) {
             if (options.getComparator().matches(entry.getValue(), packet)) {
                 return entry.getKey();
             }
@@ -107,39 +87,47 @@ public class PacketUser {
         return null;
     }
 
-    public void add(@NotNull ResourcePackPush packet) {
-        if (packet.getUniqueId() == null || uniquePack) {
-            cachedPacks.put(DUMMY_ID, packet.copy());
+    public void putPack(@Nullable UUID id, @NotNull PackT packet) {
+        if (id == null || uniquePack) {
+            cachedPacks.put(DUMMY_ID, packet);
         } else {
-            cachedPacks.put(packet.getUniqueId(), packet.copy());
+            cachedPacks.put(id, packet);
         }
     }
 
-    public void add(@NotNull ResourcePackStatus packet) {
-        if (packet.getUniqueId() == null || uniquePack) {
-            cachedResults.put(DUMMY_ID, packet.copy());
+    public <E extends Enum<E>> void putResult(@Nullable UUID id, @NotNull E result) {
+        if (id == null || uniquePack) {
+            cachedResults.put(DUMMY_ID, PackResult.from(result));
         } else {
-            cachedResults.put(packet.getUniqueId(), packet.copy());
+            cachedResults.put(id, PackResult.from(result));
         }
     }
 
-    public void remove() {
+    public void putResult(@Nullable UUID id, @NotNull PackResult result) {
+        if (id == null || uniquePack) {
+            cachedResults.put(DUMMY_ID, result);
+        } else {
+            cachedResults.put(id, result);
+        }
+    }
+
+    public void removePack() {
         cachedPacks.clear();
     }
 
-    public void remove(@NotNull ResourcePackPush packet) {
-        if (packet.getUniqueId() == null || uniquePack) {
+    public void removePack(@Nullable UUID id) {
+        if (id == null || uniquePack) {
             cachedPacks.remove(DUMMY_ID);
         } else {
-            cachedPacks.remove(packet.getUniqueId());
+            cachedPacks.remove(id);
         }
     }
 
-    public void remove(@NotNull ResourcePackPop packet) {
-        if (!packet.hasUniqueId() || uniquePack) {
+    public void handleResult(@Nullable UUID id) {
+        if (id == null || uniquePack) {
             cachedPacks.clear();
         } else {
-            cachedPacks.remove(packet.getUniqueId());
+            cachedPacks.remove(id);
         }
     }
 

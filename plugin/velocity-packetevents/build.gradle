@@ -1,0 +1,26 @@
+plugins {
+    alias libs.plugins.blossom
+}
+
+blossom {
+    replaceTokenIn('src/main/java/com/saicone/onetimepack/VelocityBootstrap.java')
+    replaceToken '${version}', project.version
+}
+
+repositories {
+    maven { url 'https://repo.papermc.io/repository/maven-public/' }
+    maven { url 'https://repo.codemc.io/repository/maven-releases/' }
+}
+
+dependencies {
+    implementation project(':platform:platform-velocity')
+    implementation project(':module:module-packetevents')
+    compileOnly libs.velocity.api
+    compileOnly libs.packetevents.api
+    compileOnly libs.packetevents.velocity
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}

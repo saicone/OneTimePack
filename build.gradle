@@ -1,22 +1,30 @@
 plugins {
     id 'java'
-    id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
+    id 'com.github.johnrengelman.shadow' version libs.versions.shadow apply false
 }
 
 subprojects {
     apply plugin: 'java'
+    apply plugin: 'idea'
     apply plugin: 'com.github.johnrengelman.shadow'
 
+    idea {
+        module {
+            downloadJavadoc = true
+            downloadSources = true
+        }
+    }
+
     repositories {
-        maven { url 'https://repo.codemc.io/repository/maven-releases/' }
         mavenCentral()
     }
 
     dependencies {
-        compileOnly 'com.github.retrooper.packetevents:api:2.2.1'
-        compileOnly 'net.kyori:adventure-api:4.15.0'
-
+        if (project.name != 'common') {
+            implementation project(':common')
+        }
         compileOnly 'org.jetbrains:annotations:24.0.1'
+        compileOnly fileTree(dir: 'libs', includes: ['*.jar'])
     }
 
     compileJava {
@@ -29,13 +37,16 @@ subprojects {
     }
 
     jar {
-        dependsOn (shadowJar)
+        if (project.name.startsWith('bungeecord-') || project.name.startsWith('velocity-')) {
+            dependsOn (shadowJar)
+        }
     }
 
     shadowJar {
         archiveBaseName.set(rootProject.name + '-' + project.name)
         archiveClassifier.set('')
-        destinationDirectory.set(file(rootProject.buildDir.path + '/libs'))
+        destinationDirectory.set(file(rootProject.layout.buildDirectory.dir('libs')))
+        minimize()
     }
 }
 

@@ -1,0 +1,10 @@
+repositories {
+    maven { url 'https://mvn.exceptionflug.de/repository/exceptionflug-public/' }
+}
+
+dependencies {
+    compileOnly libs.protocolize.api
+    compileOnly libs.netty
+    compileOnly libs.gson
+    compileOnly libs.guava
+}

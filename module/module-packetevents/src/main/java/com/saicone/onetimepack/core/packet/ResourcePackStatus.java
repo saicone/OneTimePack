@@ -7,7 +7,7 @@ import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import com.saicone.onetimepack.OneTimePack;
-import org.jetbrains.annotations.Contract;
+import com.saicone.onetimepack.core.PackResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,7 +28,7 @@ public class ResourcePackStatus extends PacketWrapper<ResourcePackStatus> implem
     // 5: invalid URL
     // 6: failed to reload
     // 7: discarded
-    private Result result;
+    private PackResult result;
 
     public ResourcePackStatus(@NotNull PacketReceiveEvent event) {
         super(event, false);
@@ -36,19 +36,19 @@ public class ResourcePackStatus extends PacketWrapper<ResourcePackStatus> implem
         readEvent(event);
     }
 
-    public ResourcePackStatus(@NotNull Result result) {
+    public ResourcePackStatus(@NotNull PackResult result) {
         this(ConnectionState.PLAY, null, null, result);
     }
 
-    public ResourcePackStatus(@Nullable String hash, @NotNull Result result) {
+    public ResourcePackStatus(@Nullable String hash, @NotNull PackResult result) {
         this(ConnectionState.PLAY, null, hash, result);
     }
 
-    public ResourcePackStatus(@NotNull ConnectionState state, @Nullable UUID uniqueId, @NotNull Result result) {
+    public ResourcePackStatus(@NotNull ConnectionState state, @Nullable UUID uniqueId, @NotNull PackResult result) {
         this(state, uniqueId, null, result);
     }
 
-    ResourcePackStatus(@NotNull ConnectionState state, @Nullable UUID uniqueId, @Nullable String hash, @NotNull Result result) {
+    ResourcePackStatus(@NotNull ConnectionState state, @Nullable UUID uniqueId, @Nullable String hash, @NotNull PackResult result) {
         super(state == ConnectionState.CONFIGURATION ? PacketType.Configuration.Client.RESOURCE_PACK_STATUS : PacketType.Play.Client.RESOURCE_PACK_STATUS);
         this.state = state;
         this.uniqueId = uniqueId;
@@ -73,7 +73,7 @@ public class ResourcePackStatus extends PacketWrapper<ResourcePackStatus> implem
     }
 
     @NotNull
-    public Result getResult() {
+    public PackResult getResult() {
         return result;
     }
 
@@ -92,7 +92,7 @@ public class ResourcePackStatus extends PacketWrapper<ResourcePackStatus> implem
         this.hash = hash;
     }
 
-    public void setResult(@NotNull Result result) {
+    public void setResult(@NotNull PackResult result) {
         this.result = result;
     }
 
@@ -104,7 +104,7 @@ public class ResourcePackStatus extends PacketWrapper<ResourcePackStatus> implem
         if (getClientVersion().isOlderThan(ClientVersion.V_1_10)) {
             hash = readString(ResourcePackPush.MAX_HASH_LENGTH);
         }
-        result = Result.VALUES[readVarInt()];
+        result = PackResult.of(readVarInt());
         if (OneTimePack.getLogLevel() >= 4) {
             OneTimePack.log(4, "[" + getState().name() + "] Packet#read() = " + this);
         }
@@ -160,46 +160,5 @@ public class ResourcePackStatus extends PacketWrapper<ResourcePackStatus> implem
                 (hash != null ? "hash='" + hash + "', " : "") +
                 "result=" + (result != null ? result.ordinal() : -1) +
                 '}';
-    }
-
-    public enum Result {
-        SUCCESS_DOWNLOAD,
-        DECLINED,
-        FAILED_DOWNLOAD,
-        ACCEPTED,
-        DOWNLOADED(0),
-        INVALID_URL(2),
-        FAILED_RELOAD(2),
-        DISCARDED(1);
-
-        public static final Result[] VALUES = values();
-
-        private final int fallback;
-
-        Result() {
-            this.fallback = 0;
-        }
-
-        Result(int fallback) {
-            this.fallback = fallback;
-        }
-
-        public int getFallback() {
-            return fallback;
-        }
-
-        @Nullable
-        @Contract("_, !null -> !null")
-        public static Result of(@NotNull String s, @Nullable Result def) {
-            if (s.equalsIgnoreCase("none")) {
-                return def;
-            }
-            for (Result value : VALUES) {
-                if (value.name().equalsIgnoreCase(s)) {
-                    return value;
-                }
-            }
-            return def;
-        }
     }
 }

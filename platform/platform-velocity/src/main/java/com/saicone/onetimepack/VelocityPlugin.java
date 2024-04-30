@@ -1,15 +1,11 @@
 package com.saicone.onetimepack;
 
-import com.google.inject.Inject;
+import com.saicone.onetimepack.core.Processor;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
-import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
-import com.velocitypowered.api.plugin.Dependency;
-import com.velocitypowered.api.plugin.Plugin;
-import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -20,7 +16,6 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 
-@Plugin(id = "onetimepack", name = "OneTimePack", description = "Send the same resource pack only one time", version = "${version}", authors = "Rubenicos", dependencies = {@Dependency(id = "packetevents")})
 public class VelocityPlugin implements OneTimePack.Provider {
 
     private static VelocityPlugin instance;
@@ -33,28 +28,29 @@ public class VelocityPlugin implements OneTimePack.Provider {
     private final Logger logger;
     private final Path dataDirectory;
 
-    @Inject
-    public VelocityPlugin(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
-        new OneTimePack(this);
+    public VelocityPlugin(ProxyServer server, Logger logger, Path dataDirectory) {
         instance = this;
         this.proxy = server;
         this.logger = logger;
         this.dataDirectory = dataDirectory;
+        new OneTimePack(this, initProcessor());
     }
 
-    @Subscribe
+    @NotNull
+    protected Processor<?, ?> initProcessor() {
+        throw new RuntimeException("Velocity plugin not implemented");
+    }
+
     public void onEnable(ProxyInitializeEvent event) {
         OneTimePack.get().onLoad();
         OneTimePack.get().onEnable();
         getProxy().getCommandManager().register(getProxy().getCommandManager().metaBuilder("onetimepack").plugin(this).build(), new VelocityCommand());
     }
 
-    @Subscribe
     public void onDisable(ProxyShutdownEvent event) {
         OneTimePack.get().onDisable();
     }
 
-    @Subscribe
     public void onDisconnect(DisconnectEvent event) {
         OneTimePack.get().getPacketHandler().clear(event.getPlayer().getUniqueId());
     }
