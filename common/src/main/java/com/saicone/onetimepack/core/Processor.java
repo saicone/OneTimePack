@@ -76,6 +76,11 @@ public abstract class Processor<UserT, PackT> {
     }
 
     @NotNull
+    public ProtocolOptions<PackT> getOptions(@NotNull ProtocolState protocol) {
+        return protocol == ProtocolState.CONFIGURATION ? getConfigurationOptions() : getPlayOptions();
+    }
+
+    @NotNull
     public ProtocolOptions<PackT> getPlayOptions() {
         return playOptions;
     }

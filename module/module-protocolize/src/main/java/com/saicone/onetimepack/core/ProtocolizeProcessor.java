@@ -77,6 +77,10 @@ public abstract class ProtocolizeProcessor<StartT, PushT, PopT, StatusT> extends
 
     protected abstract void registerListeners();
 
+    protected boolean onPackSend(@NotNull ProtocolizePlayer player, @NotNull Protocol protocol, @NotNull PushT packet, @Nullable UUID id, @Nullable String hash) {
+        return onPackSend(player, protocol, packet, id, hash, getOptions(protocol));
+    }
+
     protected boolean onPackSend(@NotNull ProtocolizePlayer player, @NotNull Protocol protocol, @NotNull PushT packet, @Nullable UUID id, @Nullable String hash, @NotNull ProtocolOptions<PushT> options) {
         if (OneTimePack.getLogLevel() >= 4) {
             OneTimePack.log(4, "Received ResourcePackPush: " + packet);
@@ -147,6 +151,10 @@ public abstract class ProtocolizeProcessor<StartT, PushT, PopT, StatusT> extends
         return false;
     }
 
+    protected boolean onPackRemove(@NotNull ProtocolizePlayer player, @NotNull Protocol protocol, @NotNull PopT packet, @Nullable UUID id) {
+        return onPackRemove(player, protocol, packet, id, getOptions(protocol));
+    }
+
     protected boolean onPackRemove(@NotNull ProtocolizePlayer player, @NotNull Protocol protocol, @NotNull PopT packet, @Nullable UUID id, @NotNull ProtocolOptions<PushT> options) {
         if (!options.allowClear() && id == null) {
             OneTimePack.log(4, "Cancelling packs clear from " + protocol.name() + " protocol for player " + player.uniqueId());
@@ -169,6 +177,15 @@ public abstract class ProtocolizeProcessor<StartT, PushT, PopT, StatusT> extends
     @NotNull
     public PacketListener getPacketListener() {
         return packetListener;
+    }
+
+    @NotNull
+    public ProtocolOptions<PushT> getOptions(@NotNull Protocol protocol) {
+        if (protocol == Protocol.CONFIGURATION) {
+            return getConfigurationOptions();
+        } else {
+            return getPlayOptions();
+        }
     }
 
     @Override

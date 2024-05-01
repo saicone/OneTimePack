@@ -41,7 +41,7 @@ public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<Sta
                 event.cancelled(!isSendInvalid());
                 return;
             }
-            event.cancelled(onPackSend(event.player(), Protocol.CONFIGURATION, packet, packet.getUniqueId(), packet.getHash(), getConfigurationOptions()));
+            event.cancelled(onPackSend(event.player(), Protocol.CONFIGURATION, packet, packet.getUniqueId(), packet.getHash()));
         });
         getPacketListener().registerReceive(ResourcePackPush.Play.class, Direction.DOWNSTREAM, event -> {
             final ResourcePackPush packet = event.packet();
@@ -50,7 +50,7 @@ public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<Sta
                 event.cancelled(!isSendInvalid());
                 return;
             }
-            event.cancelled(onPackSend(event.player(), Protocol.PLAY, packet, packet.getUniqueId(), packet.getHash(), getConfigurationOptions()));
+            event.cancelled(onPackSend(event.player(), Protocol.PLAY, packet, packet.getUniqueId(), packet.getHash()));
         });
         getPacketListener().registerReceive(ResourcePackPop.Configuration.class, Direction.DOWNSTREAM, event -> {
             final ResourcePackPop packet = event.packet();
@@ -59,7 +59,7 @@ public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<Sta
                 event.cancelled(true);
                 return;
             }
-            event.cancelled(onPackRemove(event.player(), Protocol.CONFIGURATION, packet, packet.getUniqueId(), getConfigurationOptions()));
+            event.cancelled(onPackRemove(event.player(), Protocol.CONFIGURATION, packet, packet.getUniqueId()));
         });
         getPacketListener().registerReceive(ResourcePackPop.Play.class, Direction.DOWNSTREAM, event -> {
             final ResourcePackPop packet = event.packet();
@@ -68,7 +68,7 @@ public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<Sta
                 event.cancelled(true);
                 return;
             }
-            event.cancelled(onPackRemove(event.player(), Protocol.PLAY, packet, packet.getUniqueId(), getConfigurationOptions()));
+            event.cancelled(onPackRemove(event.player(), Protocol.PLAY, packet, packet.getUniqueId()));
         });
         getPacketListener().registerReceive(ResourcePackStatus.Configuration.class, Direction.UPSTREAM, event -> {
             final ResourcePackStatus packet = event.packet();

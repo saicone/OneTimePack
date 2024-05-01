@@ -46,7 +46,7 @@ public class VelocityProtocolizeProcessor extends ProtocolizeProcessor<StartUpda
                 return;
             }
             proxy.getPlayer(event.player().uniqueId()).ifPresent(player -> {
-                event.cancelled(onPackSend(event.player(), getProtocol(player), packet, packet.getId(), packet.getHash(), getConfigurationOptions()));
+                event.cancelled(onPackSend(event.player(), getProtocol(player), packet, packet.getId(), packet.getHash()));
             });
         });
         getPacketListener().registerReceive(RemoveResourcePackPacket.class, Direction.DOWNSTREAM, event -> {
@@ -57,7 +57,7 @@ public class VelocityProtocolizeProcessor extends ProtocolizeProcessor<StartUpda
                 return;
             }
             proxy.getPlayer(event.player().uniqueId()).ifPresent(player -> {
-                event.cancelled(onPackRemove(event.player(), getProtocol(player), packet, packet.getId(), getConfigurationOptions()));
+                event.cancelled(onPackRemove(event.player(), getProtocol(player), packet, packet.getId()));
             });
         });
         getPacketListener().registerReceive(ResourcePackResponsePacket.class, Direction.UPSTREAM, event -> {
