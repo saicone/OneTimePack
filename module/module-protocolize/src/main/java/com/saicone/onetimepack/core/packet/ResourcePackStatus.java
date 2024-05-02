@@ -159,9 +159,7 @@ public class ResourcePackStatus extends AbstractPacket {
             hash = ProtocolUtil.readString(buf);
         }
         result = PackResult.of(ProtocolUtil.readVarInt(buf));
-        if (OneTimePack.getLogLevel() >= 4) {
-            OneTimePack.log(4, "[" + getProtocol().name() + "] Packet#read() = " + this);
-        }
+        OneTimePack.log(4, () -> "[" + getProtocol().name() + "] Packet#read() = " + this);
     }
 
     @Override

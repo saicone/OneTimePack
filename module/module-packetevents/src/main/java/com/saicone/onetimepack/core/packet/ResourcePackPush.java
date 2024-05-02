@@ -129,9 +129,7 @@ public class ResourcePackPush extends PacketWrapper<ResourcePackPush> implements
             }
         }
 
-        if (OneTimePack.getLogLevel() >= 4) {
-            OneTimePack.log(4, "[" + getState().name() + "] Packet#read() = " + this);
-        }
+        OneTimePack.log(4, () -> "[" + getState().name() + "] Packet#read() = " + this);
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.github.retrooper.packetevents.event.PacketListener;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
+import com.github.retrooper.packetevents.protocol.ConnectionState;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.protocol.player.User;
@@ -17,9 +18,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
-public class PacketEventsProcessor extends Processor<User, ResourcePackPush> implements PacketListener {
+public class PacketEventsProcessor extends Processor<User, ResourcePackPush, ConnectionState> implements PacketListener {
 
     @Override
     public void onEnable() {
@@ -32,8 +34,7 @@ public class PacketEventsProcessor extends Processor<User, ResourcePackPush> imp
     public void onPacketReceive(PacketReceiveEvent event) {
         if (event.getPacketType() == PacketType.Play.Client.RESOURCE_PACK_STATUS || event.getPacketType() == PacketType.Configuration.Client.RESOURCE_PACK_STATUS) {
             final ResourcePackStatus packet = new ResourcePackStatus(event);
-            getPacketUser(event.getUser()).putResult(packet.getUniqueId(), packet.getResult());
-            OneTimePack.log(4, "Saved cached result " + packet + " from user " + event.getUser().getUUID());
+            onPackStatus(event.getUser(), packet.getUniqueId(), packet.getResult());
         }
     }
 
@@ -57,83 +58,43 @@ public class PacketEventsProcessor extends Processor<User, ResourcePackPush> imp
                 });
             }
         } else if (event.getPacketType() == PacketType.Configuration.Server.RESOURCE_PACK_SEND) {
-            onPackPush(event, new ResourcePackPush(event), getConfigurationOptions());
+            onPackPush(event, ConnectionState.CONFIGURATION);
         } else if (event.getPacketType() == PacketType.Play.Server.RESOURCE_PACK_SEND) {
-            onPackPush(event, new ResourcePackPush(event), getPlayOptions());
+            onPackPush(event, ConnectionState.PLAY);
         } else if (event.getPacketType() == PacketType.Configuration.Server.RESOURCE_PACK_REMOVE) {
-            onPackPop(event, new ResourcePackPop(event), getConfigurationOptions());
+            final ResourcePackPop packet = new ResourcePackPop(event);
+            event.setCancelled(onPackPop(event.getUser(), ConnectionState.CONFIGURATION, packet, packet.getUniqueId()));
         } else if (event.getPacketType() == PacketType.Play.Server.RESOURCE_PACK_REMOVE) {
-            onPackPop(event, new ResourcePackPop(event), getPlayOptions());
+            final ResourcePackPop packet = new ResourcePackPop(event);
+            event.setCancelled(onPackPop(event.getUser(), ConnectionState.PLAY, packet, packet.getUniqueId()));
         }
     }
 
-    private void onPackPush(@NotNull PacketSendEvent event, @NotNull ResourcePackPush packet, @NotNull ProtocolOptions<ResourcePackPush> options) {
-        if (OneTimePack.getLogLevel() >= 4) {
-            OneTimePack.log(4, "Received ResourcePackPush: " + packet);
-        }
+    protected void onPackPush(@NotNull PacketSendEvent event, @NotNull ConnectionState state) {
+        final ResourcePackPush packet = new ResourcePackPush(event);
+        final Optional<PackResult> optional = onPackPush(event.getUser(), state, packet, packet.getUniqueId(), packet.getHash());
+        if (optional == null) return;
 
-        final String hash = packet.getHash();
-        // Avoid invalid resource pack sending
-        if (String.valueOf(hash).equalsIgnoreCase("null")) {
-            if (isSendInvalid()) {
-                OneTimePack.log(4, "The packet doesn't contains HASH, but invalid packs are allowed");
-            } else {
-                OneTimePack.log(4, "Invalid packet HASH received, so will be cancelled");
-                event.setCancelled(true);
-                return;
-            }
-        }
+        event.setCancelled(true);
 
-        final PacketUser<ResourcePackPush> user = getPacketUser(event.getUser());
-        final UUID packId;
-        if (!options.sendDuplicated() && (packId = user.contains(packet, options)) != null) {
-            OneTimePack.log(4, "Same resource pack received for user: " + user.getUniqueId());
-            // Async operation
-            new Thread(() -> {
-                final PackResult result = user.getResult(packId, options);
-                if (result != null) {
-                    final ResourcePackStatus cached = user.isUniquePack()
-                            ? new ResourcePackStatus(packet.getHash(), result)
-                            : new ResourcePackStatus(packet.getState(), packet.getUniqueId(), result);
-                    cached.setClientVersion(packet.getClientVersion());
-                    event.getUser().writePacket(cached);
-                    if (OneTimePack.getLogLevel() >= 4) {
-                        OneTimePack.log(4, "Sent cached result " + cached + " from user " + user.getUniqueId());
-                    }
-                } else {
-                    OneTimePack.log(2, "The user " + user.getUniqueId() + " doesn't have any cached resource pack status");
-                }
-            }).start();
-            event.setCancelled(true);
-            return;
-        }
+        final PackResult result = optional.orElse(null);
+        if (result == null) return;
 
-        // Apply pack behavior for +1.20.3 client
-        if (!user.isUniquePack() && !user.getPacks().isEmpty()) {
-            OneTimePack.log(4, "Applying " + options.getBehavior().name() + " behavior...");
-            if (options.getBehavior() == PackBehavior.OVERRIDE) {
-                user.clear();
-                event.getUser().sendPacket(new ResourcePackPop(packet.getState(), false, null));
-            }
-        }
-
-        user.putPack(packet.getUniqueId(), packet);
-        OneTimePack.log(4, "Save packet on " + packet.getState().name() + " protocol for user " + user.getUniqueId());
+        final ResourcePackStatus cached = event.getUser().getClientVersion().isOlderThan(ClientVersion.V_1_20_3)
+                ? new ResourcePackStatus(packet.getHash(), result)
+                : new ResourcePackStatus(packet.getState(), packet.getUniqueId(), result);
+        cached.setClientVersion(packet.getClientVersion());
+        event.getUser().writePacket(cached);
+        OneTimePack.log(4, () -> "Sent cached result " + cached + " from user " + event.getUser().getUUID());
     }
 
-    private void onPackPop(@NotNull PacketSendEvent event, @NotNull ResourcePackPop packet, @NotNull ProtocolOptions<ResourcePackPush> options) {
-        if (!options.allowClear() && !packet.hasUniqueId()) {
-            OneTimePack.log(4, "Cancelling packs clear from " + packet.getState().name() + " protocol for user " + event.getUser().getUUID());
-            event.setCancelled(true);
-            return;
+    @Override
+    public @NotNull ProtocolOptions<ResourcePackPush> getOptions(@NotNull ConnectionState state) {
+        if (state == ConnectionState.CONFIGURATION) {
+            return getConfigurationOptions();
+        } else {
+            return getPlayOptions();
         }
-        if (!options.allowRemove()) {
-            OneTimePack.log(4, "Cancelling pack remove from " + packet.getState().name() + " protocol for user " + event.getUser().getUUID());
-            event.setCancelled(true);
-            return;
-        }
-        getPacketUser(event.getUser()).removePack(packet.getUniqueId());
-        OneTimePack.log(4, "Remove cached packet using " + packet + " from user " + event.getUser().getUUID());
     }
 
     @Override
@@ -164,5 +125,10 @@ public class PacketEventsProcessor extends Processor<User, ResourcePackPush> imp
             default:
                 return null;
         }
+    }
+
+    @Override
+    public void clearPackets(@NotNull User user, @NotNull ConnectionState state) {
+        user.sendPacket(new ResourcePackPop(state, false, null));
     }
 }

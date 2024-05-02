@@ -57,10 +57,7 @@ public class PacketListener {
                 final List<AbstractPacketListener<?>> listeners = (List<AbstractPacketListener<?>>) field.get(Protocolize.listenerProvider());
                 listeners.add(listener);
             } catch (Throwable t) {
-                OneTimePack.log(1, "Cannot register listener of " + listener.type().getName() + " in direction " + listener.direction().name());
-                if (OneTimePack.getLogLevel() >= 1) {
-                    t.printStackTrace();
-                }
+                OneTimePack.log(1, t, "Cannot register listener of " + listener.type().getName() + " in direction " + listener.direction().name());
                 return;
             }
         }
@@ -223,6 +220,11 @@ public class PacketListener {
         @Override
         public void packetReceive(PacketReceiveEvent<T> event) {
             if (onReceive != null) {
+                if (event.packet() == null) {
+                    OneTimePack.log(4, "The packet " + type().getName() + " was null");
+                    event.cancelled(true);
+                    return;
+                }
                 onReceive.accept(event);
             }
         }
@@ -230,6 +232,11 @@ public class PacketListener {
         @Override
         public void packetSend(PacketSendEvent<T> event) {
             if (onSend != null) {
+                if (event.packet() == null) {
+                    OneTimePack.log(4, "The packet " + type().getName() + " was null");
+                    event.cancelled(true);
+                    return;
+                }
                 onSend.accept(event);
             }
         }

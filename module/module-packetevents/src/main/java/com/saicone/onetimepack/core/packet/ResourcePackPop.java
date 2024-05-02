@@ -61,9 +61,7 @@ public class ResourcePackPop extends PacketWrapper<ResourcePackPop> implements C
         if (hasUniqueId) {
             uniqueId = readUUID();
         }
-        if (OneTimePack.getLogLevel() >= 4) {
-            OneTimePack.log(4, "[" + getState().name() + "] Packet#read() = " + this);
-        }
+        OneTimePack.log(4, () -> "[" + getState().name() + "] Packet#read() = " + this);
     }
 
     @Override

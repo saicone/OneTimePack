@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class BungeeBootstrap extends BungeePlugin {
     @Override
-    protected @NotNull Processor<?, ?> initProcessor() {
+    protected @NotNull Processor<?, ?, ?> initProcessor() {
         return new MappedProtocolizeProcessor<>(StartConfiguration.class);
     }
 }

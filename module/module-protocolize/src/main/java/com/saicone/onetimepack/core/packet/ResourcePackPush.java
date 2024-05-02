@@ -210,9 +210,7 @@ public class ResourcePackPush extends AbstractPacket {
                         promptTag = NamedBinaryTagUtil.readTag(buf, protocol);
                     } catch (IOException e) {
                         hasPromptMessage = false;
-                        if (OneTimePack.getLogLevel() >= 2) {
-                            e.printStackTrace();
-                        }
+                        OneTimePack.log(2, e);
                     }
                 } else {
                     promptJson = ProtocolUtil.readString(buf);
@@ -222,9 +220,7 @@ public class ResourcePackPush extends AbstractPacket {
             forced = false;
             hasPromptMessage = false;
         }
-        if (OneTimePack.getLogLevel() >= 4) {
-            OneTimePack.log(4, "[" + getProtocol().name() + "] Packet#read() = " + this);
-        }
+        OneTimePack.log(4, () -> "[" + getProtocol().name() + "] Packet#read() = " + this);
     }
 
     @Override
@@ -242,9 +238,7 @@ public class ResourcePackPush extends AbstractPacket {
                     try {
                         NamedBinaryTagUtil.writeTag(buf, promptTag, protocol);
                     } catch (IOException e) {
-                        if (OneTimePack.getLogLevel() >= 2) {
-                            e.printStackTrace();
-                        }
+                        OneTimePack.log(2, e);
                     }
                 } else {
                     ProtocolUtil.writeString(buf, promptJson);

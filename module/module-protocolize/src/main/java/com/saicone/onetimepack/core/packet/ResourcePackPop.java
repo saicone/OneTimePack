@@ -97,9 +97,7 @@ public class ResourcePackPop extends AbstractPacket {
         if (hasUniqueId) {
             uniqueId = ProtocolUtil.readUniqueId(buf);
         }
-        if (OneTimePack.getLogLevel() >= 4) {
-            OneTimePack.log(4, "[" + getProtocol().name() + "] Packet#read() = " + this);
-        }
+        OneTimePack.log(4, () -> "[" + getProtocol().name() + "] Packet#read() = " + this);
     }
 
     @Override

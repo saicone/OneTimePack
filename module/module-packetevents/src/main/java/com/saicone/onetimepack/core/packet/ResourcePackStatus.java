@@ -105,9 +105,7 @@ public class ResourcePackStatus extends PacketWrapper<ResourcePackStatus> implem
             hash = readString(ResourcePackPush.MAX_HASH_LENGTH);
         }
         result = PackResult.of(readVarInt());
-        if (OneTimePack.getLogLevel() >= 4) {
-            OneTimePack.log(4, "[" + getState().name() + "] Packet#read() = " + this);
-        }
+        OneTimePack.log(4, () -> "[" + getState().name() + "] Packet#read() = " + this);
     }
 
     @Override

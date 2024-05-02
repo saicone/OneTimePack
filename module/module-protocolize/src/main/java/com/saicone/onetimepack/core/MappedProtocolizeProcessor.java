@@ -7,9 +7,11 @@ import com.saicone.onetimepack.core.packet.ResourcePackStatus;
 import com.saicone.onetimepack.module.Mappings;
 import com.saicone.onetimepack.util.ValueComparator;
 import dev.simplix.protocolize.api.Direction;
+import dev.simplix.protocolize.api.PacketDirection;
 import dev.simplix.protocolize.api.Protocol;
 import dev.simplix.protocolize.api.mapping.ProtocolIdMapping;
 import dev.simplix.protocolize.api.packet.AbstractPacket;
+import dev.simplix.protocolize.api.player.ProtocolizePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,7 +19,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<StartT, ResourcePackPush, ResourcePackPop, ResourcePackStatus> {
+public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<StartT, ResourcePackPush, ResourcePackStatus> {
 
     public MappedProtocolizeProcessor(@NotNull Class<StartT> startConfigurationClass) {
         super(startConfigurationClass);
@@ -36,56 +38,37 @@ public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<Sta
     protected void registerListeners() {
         getPacketListener().registerReceive(ResourcePackPush.Configuration.class, Direction.DOWNSTREAM, event -> {
             final ResourcePackPush packet = event.packet();
-            if (packet == null) {
-                OneTimePack.log(4, "The packet ResourcePackPush was null");
-                event.cancelled(!isSendInvalid());
-                return;
-            }
-            event.cancelled(onPackSend(event.player(), Protocol.CONFIGURATION, packet, packet.getUniqueId(), packet.getHash()));
+            onPackPush(event, Protocol.CONFIGURATION, packet.getUniqueId(), packet.getHash());
         });
         getPacketListener().registerReceive(ResourcePackPush.Play.class, Direction.DOWNSTREAM, event -> {
             final ResourcePackPush packet = event.packet();
-            if (packet == null) {
-                OneTimePack.log(4, "The packet ResourcePackPush was null");
-                event.cancelled(!isSendInvalid());
-                return;
-            }
-            event.cancelled(onPackSend(event.player(), Protocol.PLAY, packet, packet.getUniqueId(), packet.getHash()));
+            onPackPush(event, Protocol.PLAY, packet.getUniqueId(), packet.getHash());
         });
         getPacketListener().registerReceive(ResourcePackPop.Configuration.class, Direction.DOWNSTREAM, event -> {
             final ResourcePackPop packet = event.packet();
-            if (packet == null) {
-                OneTimePack.log(4, "The packet ResourcePackPop was null");
-                event.cancelled(true);
-                return;
-            }
-            event.cancelled(onPackRemove(event.player(), Protocol.CONFIGURATION, packet, packet.getUniqueId()));
+            event.cancelled(onPackPop(event.player(), Protocol.CONFIGURATION, packet, packet.getUniqueId()));
         });
         getPacketListener().registerReceive(ResourcePackPop.Play.class, Direction.DOWNSTREAM, event -> {
             final ResourcePackPop packet = event.packet();
-            if (packet == null) {
-                OneTimePack.log(4, "The packet ResourcePackPop was null");
-                event.cancelled(true);
-                return;
-            }
-            event.cancelled(onPackRemove(event.player(), Protocol.PLAY, packet, packet.getUniqueId()));
+            event.cancelled(onPackPop(event.player(), Protocol.PLAY, packet, packet.getUniqueId()));
         });
         getPacketListener().registerReceive(ResourcePackStatus.Configuration.class, Direction.UPSTREAM, event -> {
             final ResourcePackStatus packet = event.packet();
-            if (packet == null) {
-                OneTimePack.log(4, "The packet ResourcePackStatus was null");
-                return;
-            }
-            onPackStatus(event.player(), packet, packet.getUniqueId(), packet.getResult());
+            onPackStatus(event.player(), packet.getUniqueId(), packet.getResult());
         });
         getPacketListener().registerReceive(ResourcePackStatus.Play.class, Direction.UPSTREAM, event -> {
             final ResourcePackStatus packet = event.packet();
-            if (packet == null) {
-                OneTimePack.log(4, "The packet ResourcePackStatus was null");
-                return;
-            }
-            onPackStatus(event.player(), packet, packet.getUniqueId(), packet.getResult());
+            onPackStatus(event.player(), packet.getUniqueId(), packet.getResult());
         });
+    }
+
+    @Override
+    public @NotNull ProtocolOptions<ResourcePackPush> getOptions(@NotNull Protocol protocol) {
+        if (protocol == Protocol.CONFIGURATION) {
+            return getConfigurationOptions();
+        } else {
+            return getPlayOptions();
+        }
     }
 
     @Override
@@ -114,15 +97,6 @@ public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<Sta
     }
 
     @Override
-    protected @NotNull ResourcePackPop getClearPacket(@NotNull Protocol protocol) {
-        if (protocol == Protocol.CONFIGURATION) {
-            return new ResourcePackPop.Configuration();
-        } else {
-            return new ResourcePackPop.Play();
-        }
-    }
-
-    @Override
     protected @NotNull ResourcePackStatus getStatusPacket(@NotNull Protocol protocol, @NotNull ResourcePackPush packet, @NotNull PackResult result) {
         if (protocol == Protocol.CONFIGURATION) {
             return new ResourcePackStatus.Configuration(packet.getUniqueId(), result);
@@ -140,6 +114,21 @@ public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<Sta
             consumer.accept(null);
         } else {
             consumer.accept(protocol -> mappings.getMappings(clazz.getSimpleName(), protocol));
+        }
+    }
+
+    @Override
+    public void clearPackets(@NotNull ProtocolizePlayer player, @NotNull Protocol protocol) {
+        final ResourcePackPop clearPacket = protocol == Protocol.CONFIGURATION ? new ResourcePackPop.Configuration() : new ResourcePackPop.Play();
+        if (protocol == Protocol.CONFIGURATION) {
+            player.sendPacket(getWrappedPacket(
+                    clearPacket,
+                    Protocol.CONFIGURATION,
+                    PacketDirection.CLIENTBOUND,
+                    player.protocolVersion()
+            ));
+        } else {
+            player.sendPacket(clearPacket);
         }
     }
 }

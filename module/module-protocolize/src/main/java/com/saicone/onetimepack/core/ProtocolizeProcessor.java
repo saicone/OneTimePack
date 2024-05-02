@@ -3,6 +3,7 @@ package com.saicone.onetimepack.core;
 import com.saicone.onetimepack.OneTimePack;
 import com.saicone.onetimepack.module.listener.PacketListener;
 import dev.simplix.protocolize.api.*;
+import dev.simplix.protocolize.api.listener.PacketReceiveEvent;
 import dev.simplix.protocolize.api.packet.AbstractPacket;
 import dev.simplix.protocolize.api.player.ProtocolizePlayer;
 import dev.simplix.protocolize.api.util.ProtocolVersions;
@@ -12,9 +13,10 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
-public abstract class ProtocolizeProcessor<StartT, PushT, PopT, StatusT> extends Processor<ProtocolizePlayer, PushT> {
+public abstract class ProtocolizeProcessor<StartT, PushT, StatusT> extends Processor<ProtocolizePlayer, PushT, Protocol> {
 
     private static final MethodHandle WRAPPER;
 
@@ -77,101 +79,28 @@ public abstract class ProtocolizeProcessor<StartT, PushT, PopT, StatusT> extends
 
     protected abstract void registerListeners();
 
-    protected boolean onPackSend(@NotNull ProtocolizePlayer player, @NotNull Protocol protocol, @NotNull PushT packet, @Nullable UUID id, @Nullable String hash) {
-        return onPackSend(player, protocol, packet, id, hash, getOptions(protocol));
-    }
+    protected void onPackPush(@NotNull PacketReceiveEvent<? extends PushT> event, @NotNull Protocol protocol, @Nullable UUID id, @Nullable Object hash) {
+        final ProtocolizePlayer player = event.player();
+        final Optional<PackResult> optional = onPackPush(player, protocol, event.packet(), id, hash);
+        if (optional == null) return;
 
-    protected boolean onPackSend(@NotNull ProtocolizePlayer player, @NotNull Protocol protocol, @NotNull PushT packet, @Nullable UUID id, @Nullable String hash, @NotNull ProtocolOptions<PushT> options) {
-        if (OneTimePack.getLogLevel() >= 4) {
-            OneTimePack.log(4, "Received ResourcePackPush: " + packet);
+        event.cancelled(true);
+
+        final PackResult result = optional.orElse(null);
+        if (result == null) return;
+
+        final StatusT cached = getStatusPacket(protocol, event.packet(), result);
+        if (protocol == Protocol.CONFIGURATION && cached instanceof AbstractPacket) {
+            player.sendPacketToServer(getWrappedPacket(
+                    (AbstractPacket) cached,
+                    Protocol.CONFIGURATION,
+                    PacketDirection.SERVERBOUND,
+                    player.protocolVersion()
+            ));
+        } else {
+            player.sendPacketToServer(cached);
         }
-
-        // Avoid invalid resource pack sending
-        if (String.valueOf(hash).equalsIgnoreCase("null")) {
-            if (isSendInvalid()) {
-                OneTimePack.log(4, "The packet doesn't contains HASH, but invalid packs are allowed");
-            } else {
-                OneTimePack.log(4, "Invalid packet HASH received, so will be cancelled");
-                return true;
-            }
-        }
-
-        final PacketUser<PushT> user = getPacketUser(player);
-        final UUID uuid = player.uniqueId();
-        // Cancel resource pack re-sending to player
-        final UUID packId;
-        if (!options.sendDuplicated() && (packId = user.contains(packet, options)) != null) {
-            OneTimePack.log(4, "Same resource pack received for player: " + user.getUniqueId());
-            // Re-send to server the actual resource pack status from player
-            new Thread(() -> {
-                final PackResult result = user.getResult(packId, options);
-                if (result == null) {
-                    OneTimePack.log(2, "The user " + user.getUniqueId() + " doesn't have any cached resource pack status");
-                    return;
-                }
-                final StatusT cached = getStatusPacket(protocol, packet, result);
-                if (protocol == Protocol.CONFIGURATION && cached instanceof AbstractPacket) {
-                    player.sendPacketToServer(getWrappedPacket(
-                            (AbstractPacket) cached,
-                            Protocol.CONFIGURATION,
-                            PacketDirection.SERVERBOUND,
-                            player.protocolVersion()
-                    ));
-                } else {
-                    player.sendPacketToServer(cached);
-                }
-                if (OneTimePack.getLogLevel() >= 4) {
-                    OneTimePack.log(4, "Sent cached result " + cached + " from player " + uuid);
-                }
-            }).start();
-            return true;
-        }
-
-        // Apply pack behavior for +1.20.3 client
-        if (!user.isUniquePack() && !user.getPacks().isEmpty()) {
-            OneTimePack.log(4, "Applying " + options.getBehavior().name() + " behavior...");
-            if (options.getBehavior() == PackBehavior.OVERRIDE) {
-                user.clear();
-                final PopT clearPacket = getClearPacket(protocol);
-                if (protocol == Protocol.CONFIGURATION && clearPacket instanceof AbstractPacket) {
-                    player.sendPacket(getWrappedPacket(
-                            (AbstractPacket) clearPacket,
-                            Protocol.CONFIGURATION,
-                            PacketDirection.CLIENTBOUND,
-                            player.protocolVersion()
-                    ));
-                } else {
-                    player.sendPacket(clearPacket);
-                }
-            }
-        }
-
-        user.putPack(id, packet);
-        OneTimePack.log(4, "Save packet on " + protocol.name() + " protocol for player " + uuid);
-        return false;
-    }
-
-    protected boolean onPackRemove(@NotNull ProtocolizePlayer player, @NotNull Protocol protocol, @NotNull PopT packet, @Nullable UUID id) {
-        return onPackRemove(player, protocol, packet, id, getOptions(protocol));
-    }
-
-    protected boolean onPackRemove(@NotNull ProtocolizePlayer player, @NotNull Protocol protocol, @NotNull PopT packet, @Nullable UUID id, @NotNull ProtocolOptions<PushT> options) {
-        if (!options.allowClear() && id == null) {
-            OneTimePack.log(4, "Cancelling packs clear from " + protocol.name() + " protocol for player " + player.uniqueId());
-            return true;
-        }
-        if (!options.allowRemove()) {
-            OneTimePack.log(4, "Cancelling pack remove from " + protocol.name() + " protocol for player " + player.uniqueId());
-            return true;
-        }
-        getPacketUser(player).removePack(id);
-        OneTimePack.log(4, "Remove cached packet using: " + packet + " from player " + player.uniqueId());
-        return false;
-    }
-
-    protected void onPackStatus(@NotNull ProtocolizePlayer player, @NotNull StatusT packet, @Nullable UUID id, @NotNull PackResult result) {
-        getPacketUser(player).putResult(id, result);
-        OneTimePack.log(4, "Saved cached result: " + packet + " from player " + player.uniqueId());
+        OneTimePack.log(4, () -> "Sent cached result " + result.name() + " from user " + player.uniqueId());
     }
 
     @NotNull
@@ -179,8 +108,8 @@ public abstract class ProtocolizeProcessor<StartT, PushT, PopT, StatusT> extends
         return packetListener;
     }
 
-    @NotNull
-    public ProtocolOptions<PushT> getOptions(@NotNull Protocol protocol) {
+    @Override
+    public @NotNull ProtocolOptions<PushT> getOptions(@NotNull Protocol protocol) {
         if (protocol == Protocol.CONFIGURATION) {
             return getConfigurationOptions();
         } else {
@@ -202,9 +131,6 @@ public abstract class ProtocolizeProcessor<StartT, PushT, PopT, StatusT> extends
     protected PushT getPushPacket(@NotNull PushT packet) {
         return packet;
     }
-
-    @NotNull
-    protected abstract PopT getClearPacket(@NotNull Protocol protocol);
 
     @NotNull
     protected abstract StatusT getStatusPacket(@NotNull Protocol protocol, @NotNull PushT packet, @NotNull PackResult result);

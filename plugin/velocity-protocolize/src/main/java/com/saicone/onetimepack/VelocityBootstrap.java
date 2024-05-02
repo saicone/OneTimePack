@@ -32,7 +32,7 @@ public class VelocityBootstrap extends VelocityPlugin {
     }
 
     @Override
-    protected @NotNull Processor<?, ?> initProcessor() {
+    protected @NotNull Processor<?, ?, ?> initProcessor() {
         return new VelocityProtocolizeProcessor(getProxy());
     }
 

@@ -14,9 +14,9 @@ import com.velocitypowered.api.proxy.player.ResourcePackInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.UUID;
+import java.util.Optional;
 
-public class VelocityProcessor extends Processor<Player, ResourcePackInfo> {
+public class VelocityProcessor extends Processor<Player, ResourcePackInfo, ProtocolState> {
 
     private static final PlayerResourcePackStatusEvent.Status[] VALUES = PlayerResourcePackStatusEvent.Status.values();
 
@@ -35,63 +35,31 @@ public class VelocityProcessor extends Processor<Player, ResourcePackInfo> {
 
     @Subscribe
     public void onPackSend(ServerResourcePackSendEvent event) {
+        final Player player = event.getServerConnection().getPlayer();
         final ResourcePackInfo info = event.getProvidedResourcePack();
 
-        final byte[] hash = info.getHash();
-        if (hash == null) {
-            if (isSendInvalid()) {
-                OneTimePack.log(4, "The packet doesn't contains HASH, but invalid packs are allowed");
-            } else {
-                OneTimePack.log(4, "Invalid packet HASH received, so will be cancelled");
-                event.setResult(ResultedEvent.GenericResult.denied());
-                return;
-            }
-        }
+        final Optional<PackResult> optional = onPackPush(player, player.getProtocolState(), info, info.getId(), info.getHash());
+        if (optional == null) return;
 
-        final Player player = event.getServerConnection().getPlayer();
-        final ProtocolState state = player.getProtocolState();
-        final ProtocolOptions<ResourcePackInfo> options = getOptions(state);
+        event.setResult(ResultedEvent.GenericResult.denied());
 
-        final var user = getPacketUser(player);
-        final UUID packId;
-        if (!options.sendDuplicated() && (packId = user.contains(info, options)) != null) {
-            OneTimePack.log(4, "Same resource pack received for user: " + user.getUniqueId());
-            // Async operation
-            proxy.getScheduler().buildTask(plugin, () -> {
-                final var result = user.getResult(packId, options);
-                if (result != null) {
-                    proxy.getEventManager().fireAndForget(new PlayerResourcePackStatusEvent(player, info.getId(), VALUES[result.ordinal()], info));
-                    if (OneTimePack.getLogLevel() >= 4) {
-                        OneTimePack.log(4, "Sent cached result " + result + " from user " + user.getUniqueId());
-                    }
-                } else {
-                    OneTimePack.log(2, "The user " + user.getUniqueId() + " doesn't have any cached resource pack status");
-                }
-            }).schedule();
-            event.setResult(ResultedEvent.GenericResult.denied());
-            return;
-        }
+        final PackResult result = optional.orElse(null);
+        if (result == null) return;
 
-        // Apply pack behavior for +1.20.3 client
-        if (!user.isUniquePack() && !user.getPacks().isEmpty()) {
-            OneTimePack.log(4, "Applying " + options.getBehavior().name() + " behavior...");
-            if (options.getBehavior() == PackBehavior.OVERRIDE) {
-                user.clear();
-                player.clearResourcePacks();
-            }
-        }
-
-        user.putPack(info.getId(), info);
-        OneTimePack.log(4, "Save packet on " + state.name() + " protocol for user " + user.getUniqueId());
+        // Async operation
+        proxy.getScheduler().buildTask(plugin, () -> {
+            proxy.getEventManager().fireAndForget(new PlayerResourcePackStatusEvent(player, info.getId(), VALUES[result.ordinal()], info));
+            OneTimePack.log(4, () -> "Sent cached result " + result.name() + " from user " + player.getUniqueId());
+        }).schedule();
     }
 
     @Subscribe
     public void onPackStatus(PlayerResourcePackStatusEvent event) {
-        getPacketUser(event.getPlayer()).putResult(event.getPackId(), event.getStatus());
-        OneTimePack.log(4, "Saved cached result " + event.getStatus() + " from user " + event.getPlayer().getUniqueId());
+        onPackStatus(event.getPlayer(), event.getPackId(), event.getStatus());
     }
 
-    private ProtocolOptions<ResourcePackInfo> getOptions(@NotNull ProtocolState state) {
+    @Override
+    public @NotNull ProtocolOptions<ResourcePackInfo> getOptions(@NotNull ProtocolState state) {
         if (state == ProtocolState.CONFIGURATION) {
             return getConfigurationOptions();
         } else {
@@ -120,5 +88,10 @@ public class VelocityProcessor extends Processor<Player, ResourcePackInfo> {
             case "ANY" -> pack -> true;
             default -> null;
         };
+    }
+
+    @Override
+    public void clearPackets(@NotNull Player player, @NotNull ProtocolState state) {
+        player.clearResourcePacks();
     }
 }
