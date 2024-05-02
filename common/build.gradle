@@ -1,5 +1,5 @@
 dependencies {
-    compileOnly libs.netty
+    compileOnly libs.netty.buffer
     compileOnly libs.gson
     compileOnly libs.guava
 }

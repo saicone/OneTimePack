@@ -4,7 +4,7 @@ repositories {
 
 dependencies {
     compileOnly libs.protocolize.api
-    compileOnly libs.netty
+    compileOnly libs.netty.buffer
     compileOnly libs.gson
     compileOnly libs.guava
 }

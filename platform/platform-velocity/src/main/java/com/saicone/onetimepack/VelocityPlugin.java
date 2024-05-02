@@ -37,7 +37,7 @@ public class VelocityPlugin implements OneTimePack.Provider {
     }
 
     @NotNull
-    protected Processor<?, ?> initProcessor() {
+    protected Processor<?, ?, ?> initProcessor() {
         throw new RuntimeException("Velocity plugin not implemented");
     }
 

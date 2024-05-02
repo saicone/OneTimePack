@@ -29,7 +29,7 @@ public class BungeePlugin extends Plugin implements Listener, OneTimePack.Provid
     }
 
     @NotNull
-    protected Processor<?, ?> initProcessor() {
+    protected Processor<?, ?, ?> initProcessor() {
         throw new RuntimeException("Bungeecord plugin not implemented");
     }
 
