@@ -1,0 +1,15 @@
+repositories {
+    maven { url 'https://repo.papermc.io/repository/maven-public/' }
+    maven { url 'https://maven.elytrium.net/repo/' }
+}
+
+dependencies {
+    compileOnly libs.vpacketevents.api
+    compileOnly libs.velocity.api
+    compileOnly libs.velocity.proxy
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}

@@ -12,6 +12,7 @@ bungeecord = "1.20-R0.2-SNAPSHOT"
 
 packetevents = "2.2.1"
 protocolize = "2.3.2"
+vpacketevents = "1.1.0"
 
 adventure = "4.15.0"
 
@@ -39,6 +40,8 @@ packetevents-velocity = { module = "com.github.retrooper.packetevents:velocity",
 protocolize-api = { module = "dev.simplix:protocolize-api", version.ref = "protocolize" }
 protocolize-bungeecord = { module = "dev.simplix:protocolize-bungeecord", version.ref = "protocolize" }
 protocolize-velocity = { module = "dev.simplix:protocolize-velocity", version.ref = "protocolize" }
+
+vpacketevents-api = { module = "io.github.4drian3d:vpacketevents-api", version.ref = "vpacketevents" }
 
 adventure = { module = "net.kyori:adventure-api", version.ref = "adventure" }
 

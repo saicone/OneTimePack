@@ -7,7 +7,8 @@ include 'common'
 include(
         'module:module-packetevents',
         'module:module-protocolize',
-        'module:module-velocity'
+        'module:module-velocity',
+        'module:module-vpacketevents'
 )
 
 // Platforms
@@ -22,5 +23,6 @@ include(
         'plugin:bungeecord-protocolize',
         'plugin:velocity-api',
         'plugin:velocity-packetevents',
-        'plugin:velocity-protocolize'
+        'plugin:velocity-protocolize',
+        'plugin:velocity-vpacketevents'
 )
