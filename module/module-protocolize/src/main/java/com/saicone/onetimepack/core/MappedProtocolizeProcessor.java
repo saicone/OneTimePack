@@ -29,9 +29,9 @@ public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<Sta
     public void onLoad() {
         final Mappings mappings = new Mappings(OneTimePack.get().getProvider().getPluginFolder(), "mappings.json");
         mappings.load();
-        register(mappings, ResourcePackPush.class, ResourcePackPush::register);
-        register(mappings, ResourcePackPop.class, ResourcePackPop::register);
-        register(mappings, ResourcePackStatus.class, ResourcePackStatus::register);
+        register(mappings, "ResourcePackSend", ResourcePackPush::register);
+        register(mappings, "ResourcePackRemove", ResourcePackPop::register);
+        register(mappings, "ResourcePackStatus", ResourcePackStatus::register);
     }
 
     @Override
@@ -109,11 +109,11 @@ public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<Sta
         }
     }
 
-    private <T extends AbstractPacket> void register(@NotNull Mappings mappings, @NotNull Class<T> clazz, @NotNull Consumer<Function<String, List<ProtocolIdMapping>>> consumer) {
-        if (!mappings.contains(clazz.getSimpleName())) {
+    private <T extends AbstractPacket> void register(@NotNull Mappings mappings, @NotNull String name, @NotNull Consumer<Function<String, List<ProtocolIdMapping>>> consumer) {
+        if (!mappings.contains(name)) {
             consumer.accept(null);
         } else {
-            consumer.accept(protocol -> mappings.getMappings(clazz.getSimpleName(), protocol));
+            consumer.accept(protocol -> mappings.getMappings(name, protocol));
         }
     }
 
