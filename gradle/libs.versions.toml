@@ -44,7 +44,8 @@ protocolize-velocity = { module = "dev.simplix:protocolize-velocity", version.re
 
 vpacketevents-api = { module = "io.github.4drian3d:vpacketevents-api", version.ref = "vpacketevents" }
 
-adventure = { module = "net.kyori:adventure-api", version.ref = "adventure" }
+adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure" }
+adventure-nbt = { module = "net.kyori:adventure-nbt", version.ref = "adventure" }
 
 [plugins]
 
