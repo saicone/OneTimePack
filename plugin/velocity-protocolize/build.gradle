@@ -21,7 +21,6 @@ dependencies {
     compileOnly libs.velocity.proxy
     compileOnly libs.protocolize.api
     compileOnly libs.protocolize.velocity
-    compileOnly libs.adventure.nbt
 }
 
 java {

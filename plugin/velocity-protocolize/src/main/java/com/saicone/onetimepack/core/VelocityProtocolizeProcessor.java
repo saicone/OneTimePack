@@ -30,7 +30,7 @@ public class VelocityProtocolizeProcessor extends ProtocolizeProcessor<StartUpda
             case "UUID" -> ResourcePackRequestPacket::getId;
             case "URL" -> ResourcePackRequestPacket::getUrl;
             case "HASH" -> ResourcePackRequestPacket::getHash;
-            case "PROMPT" -> pack -> pack.getPrompt() == null ? null : pack.getPrompt().getBinaryTag();
+            case "PROMPT" -> pack -> pack.getPrompt() == null ? null : pack.getPrompt().getComponent();
             case "ALL" -> pack -> pack;
             case "ANY" -> pack -> true;
             default -> null;

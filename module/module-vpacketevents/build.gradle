@@ -6,7 +6,6 @@ repositories {
 dependencies {
     compileOnly libs.vpacketevents.api
     compileOnly libs.netty.transport
-    compileOnly libs.adventure.nbt
     compileOnly libs.velocity.api
     compileOnly libs.velocity.proxy
 }
