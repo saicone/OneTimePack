@@ -1,12 +1,12 @@
 plugins {
     id 'java'
-    id 'com.github.johnrengelman.shadow' version libs.versions.shadow apply false
+    id 'io.github.goooler.shadow' version libs.versions.shadow apply false
 }
 
 subprojects {
     apply plugin: 'java'
     apply plugin: 'idea'
-    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'io.github.goooler.shadow'
 
     idea {
         module {
