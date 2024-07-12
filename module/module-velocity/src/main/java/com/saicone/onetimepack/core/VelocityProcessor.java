@@ -5,7 +5,9 @@ import com.saicone.onetimepack.util.ValueComparator;
 import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.player.PlayerResourcePackStatusEvent;
+import com.velocitypowered.api.event.player.ServerResourcePackRemoveEvent;
 import com.velocitypowered.api.event.player.ServerResourcePackSendEvent;
+import com.velocitypowered.api.event.player.configuration.PlayerEnteredConfigurationEvent;
 import com.velocitypowered.api.network.ProtocolState;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.api.proxy.Player;
@@ -15,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
+import java.util.UUID;
 
 public class VelocityProcessor extends Processor<Player, ResourcePackInfo, ProtocolState> {
 
@@ -31,6 +34,21 @@ public class VelocityProcessor extends Processor<Player, ResourcePackInfo, Proto
     @Override
     public void onEnable() {
         proxy.getEventManager().register(plugin, this);
+    }
+
+    @Subscribe
+    public void onEnterConfiguration(PlayerEnteredConfigurationEvent event) {
+        if (!isSendCached1_20_2() || event.player().getProtocolVersion().greaterThan(ProtocolVersion.MINECRAFT_1_20_2)) {
+            return;
+        }
+        final UUID uuid = event.player().getUniqueId();
+        if (getUsers().containsKey(uuid)) {
+            OneTimePack.log(4, "The cached pack will be send for player due it's on configuration state");
+            for (var entry : getUsers().get(uuid).getPacks().entrySet()) {
+                event.player().sendResourcePackOffer(entry.getValue());
+            }
+            OneTimePack.log(4, "Sent!");
+        }
     }
 
     @Subscribe
@@ -51,6 +69,14 @@ public class VelocityProcessor extends Processor<Player, ResourcePackInfo, Proto
             proxy.getEventManager().fireAndForget(new PlayerResourcePackStatusEvent(player, info.getId(), VALUES[result.ordinal()], info));
             OneTimePack.log(4, () -> "Sent cached result " + result.name() + " from user " + player.getUniqueId());
         }).schedule();
+    }
+
+    @Subscribe
+    public void onPackRemove(ServerResourcePackRemoveEvent event) {
+        final Player player = event.getServerConnection().getPlayer();
+        if (onPackPop(player, player.getProtocolState(), event, event.getPackId())) {
+            event.setResult(ResultedEvent.GenericResult.denied());
+        }
     }
 
     @Subscribe

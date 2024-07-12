@@ -9,7 +9,6 @@ blossom {
 
 repositories {
     maven { url 'https://repo.papermc.io/repository/maven-public/' }
-    maven { url 'https://maven.elytrium.net/repo/' }
     maven { url 'https://mvn.exceptionflug.de/repository/exceptionflug-public/' }
 }
 
@@ -18,7 +17,6 @@ dependencies {
     implementation project(':module:module-protocolize')
     compileOnly libs.velocity.api
     annotationProcessor libs.velocity.api
-    compileOnly libs.velocity.proxy
     compileOnly libs.protocolize.api
     compileOnly libs.protocolize.velocity
 }
