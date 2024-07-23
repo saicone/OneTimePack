@@ -78,13 +78,13 @@ public class PacketEventsProcessor extends Processor<User, ResourcePackPush, Con
         event.setCancelled(true);
 
         final PackResult result = optional.orElse(null);
-        if (result == null || true) return;
+        if (result == null) return;
 
         final ResourcePackStatus cached = event.getUser().getClientVersion().isOlderThan(ClientVersion.V_1_20_3)
                 ? new ResourcePackStatus(packet.getHash(), result)
                 : new ResourcePackStatus(packet.getState(), packet.getUniqueId(), result);
         cached.setServerVersion(packet.getServerVersion());
-        event.getUser().writePacket(cached);
+        PacketEvents.getAPI().getProtocolManager().receivePacketSilently(event.getUser().getChannel(), cached);
         OneTimePack.log(4, () -> "Sent cached result " + cached + " from user " + event.getUser().getUUID());
     }
 
