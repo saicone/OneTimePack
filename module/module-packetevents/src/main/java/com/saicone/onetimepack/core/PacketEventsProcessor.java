@@ -51,7 +51,7 @@ public class PacketEventsProcessor extends Processor<User, ResourcePackPush, Con
                     if (event.isCancelled()) return;
                     for (Map.Entry<UUID, ResourcePackPush> entry : getUsers().get(uuid).getPacks().entrySet()) {
                         final ResourcePackPush packet = entry.getValue().as(event.getUser().getConnectionState());
-                        packet.setClientVersion(event.getUser().getClientVersion());
+                        packet.setServerVersion(event.getUser().getClientVersion().toServerVersion());
                         event.getUser().sendPacket(packet);
                     }
                     OneTimePack.log(4, "Sent!");
@@ -78,12 +78,12 @@ public class PacketEventsProcessor extends Processor<User, ResourcePackPush, Con
         event.setCancelled(true);
 
         final PackResult result = optional.orElse(null);
-        if (result == null) return;
+        if (result == null || true) return;
 
         final ResourcePackStatus cached = event.getUser().getClientVersion().isOlderThan(ClientVersion.V_1_20_3)
                 ? new ResourcePackStatus(packet.getHash(), result)
                 : new ResourcePackStatus(packet.getState(), packet.getUniqueId(), result);
-        cached.setClientVersion(packet.getClientVersion());
+        cached.setServerVersion(packet.getServerVersion());
         event.getUser().writePacket(cached);
         OneTimePack.log(4, () -> "Sent cached result " + cached + " from user " + event.getUser().getUUID());
     }

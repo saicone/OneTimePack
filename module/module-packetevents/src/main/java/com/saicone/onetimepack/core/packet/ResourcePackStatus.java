@@ -4,7 +4,6 @@ import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.protocol.ConnectionState;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
-import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import com.saicone.onetimepack.OneTimePack;
 import com.saicone.onetimepack.core.PackResult;
@@ -98,10 +97,10 @@ public class ResourcePackStatus extends PacketWrapper<ResourcePackStatus> implem
 
     @Override
     public void read() {
-        if (getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_20_3)) {
+        if (getServerVersion().isNewerThanOrEquals(ServerVersion.V_1_20_3)) {
             uniqueId = readUUID();
         }
-        if (getClientVersion().isOlderThan(ClientVersion.V_1_10)) {
+        if (getServerVersion().isOlderThan(ServerVersion.V_1_10)) {
             hash = readString(ResourcePackPush.MAX_HASH_LENGTH);
         }
         result = PackResult.of(readVarInt());
@@ -110,10 +109,10 @@ public class ResourcePackStatus extends PacketWrapper<ResourcePackStatus> implem
 
     @Override
     public void write() {
-        if (getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_20_3)) {
+        if (getServerVersion().isNewerThanOrEquals(ServerVersion.V_1_20_3)) {
             writeUUID(uniqueId);
         }
-        if (getClientVersion().isOlderThan(ClientVersion.V_1_10)) {
+        if (getServerVersion().isOlderThan(ServerVersion.V_1_10)) {
             writeString(hash, ResourcePackPush.MAX_HASH_LENGTH);
         }
         writeVarInt(getResultOrdinal());

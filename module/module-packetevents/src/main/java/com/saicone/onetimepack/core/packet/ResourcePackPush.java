@@ -1,7 +1,7 @@
 package com.saicone.onetimepack.core.packet;
 
 import com.github.retrooper.packetevents.event.PacketSendEvent;
-import com.github.retrooper.packetevents.protocol.player.ClientVersion;
+import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.protocol.ConnectionState;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.util.adventure.AdventureSerializer;
@@ -115,13 +115,13 @@ public class ResourcePackPush extends PacketWrapper<ResourcePackPush> implements
 
     @Override
     public void read() {
-        if (getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_20_3)) {
+        if (getServerVersion().isNewerThanOrEquals(ServerVersion.V_1_20_3)) {
             uniqueId = readUUID();
         }
 
         url = readString();
         hash = readString(MAX_HASH_LENGTH);
-        if (getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_17)) {
+        if (getServerVersion().isNewerThanOrEquals(ServerVersion.V_1_17)) {
             forced = readBoolean();
             hasPromptMessage = readBoolean();
             if (hasPromptMessage) {
@@ -134,13 +134,13 @@ public class ResourcePackPush extends PacketWrapper<ResourcePackPush> implements
 
     @Override
     public void write() {
-        if (getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_20_3)) {
+        if (getServerVersion().isNewerThanOrEquals(ServerVersion.V_1_20_3)) {
             writeUUID(uniqueId);
         }
 
         writeString(url);
         writeString(hash, MAX_HASH_LENGTH);
-        if (getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_17)) {
+        if (getServerVersion().isNewerThanOrEquals(ServerVersion.V_1_17)) {
             writeBoolean(forced);
             writeBoolean(hasPromptMessage);
             if (hasPromptMessage) {
