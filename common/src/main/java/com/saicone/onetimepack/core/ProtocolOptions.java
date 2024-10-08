@@ -16,6 +16,7 @@ public class ProtocolOptions<PackT> {
     private final boolean send;
     private final boolean clear;
     private final boolean remove;
+    private final int minProtocol;
 
     @NotNull
     public static <T> ProtocolOptions<T> of(@NotNull ProtocolState state, @NotNull Function<String, ValueComparator<T>> provider) {
@@ -28,17 +29,19 @@ public class ProtocolOptions<PackT> {
                 PackBehavior.of(config.getString(path + "behavior", config.getString(def + "behavior", "OVERRIDE"))),
                 config.getBoolean(path + "send", config.getBoolean(def + "send", false)),
                 config.getBoolean(path + "clear", config.getBoolean(def + "clear", false)),
-                config.getBoolean(path + "remove", config.getBoolean(def + "remove", false))
+                config.getBoolean(path + "remove", config.getBoolean(def + "remove", false)),
+                config.getInt(path + "min-protocol", config.getInt(def + "min-protocol", -1))
         );
     }
 
-    public ProtocolOptions(@NotNull ValueComparator<PackT> comparator, @Nullable PackResult defaultStatus, @NotNull PackBehavior behavior, boolean send, boolean clear, boolean remove) {
+    public ProtocolOptions(@NotNull ValueComparator<PackT> comparator, @Nullable PackResult defaultStatus, @NotNull PackBehavior behavior, boolean send, boolean clear, boolean remove, int minProtocol) {
         this.comparator = comparator;
         this.defaultStatus = defaultStatus;
         this.behavior = behavior;
         this.send = send;
         this.clear = clear;
         this.remove = remove;
+        this.minProtocol = minProtocol;
     }
 
     @NotNull
@@ -54,6 +57,10 @@ public class ProtocolOptions<PackT> {
     @NotNull
     public PackBehavior getBehavior() {
         return behavior;
+    }
+
+    public int getMinProtocol() {
+        return minProtocol;
     }
 
     public boolean sendDuplicated() {

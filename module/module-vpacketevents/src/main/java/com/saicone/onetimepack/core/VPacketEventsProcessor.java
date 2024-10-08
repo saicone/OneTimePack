@@ -104,7 +104,7 @@ public class VPacketEventsProcessor extends Processor<Player, ResourcePackReques
     protected @NotNull PacketUser<ResourcePackRequestPacket> getPacketUser(@NotNull Player player) {
         var packetUser = getUsers().get(player.getUniqueId());
         if (packetUser == null) {
-            packetUser = new PacketUser<>(player.getUniqueId(), player.getProtocolVersion().lessThan(ProtocolVersion.MINECRAFT_1_20_3));
+            packetUser = new PacketUser<>(player.getUniqueId(), player.getProtocolVersion().getProtocol());
             getUsers().put(player.getUniqueId(), packetUser);
         }
         return packetUser;

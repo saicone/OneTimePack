@@ -125,7 +125,7 @@ public abstract class ProtocolizeProcessor<StartT, PushT, StatusT> extends Proce
     protected @NotNull PacketUser<PushT> getPacketUser(@NotNull ProtocolizePlayer player) {
         PacketUser<PushT> packetUser = getUsers().get(player.uniqueId());
         if (packetUser == null) {
-            packetUser = new PacketUser<>(player.uniqueId(), player.protocolVersion() < ProtocolVersions.MINECRAFT_1_20_3);
+            packetUser = new PacketUser<>(player.uniqueId(), player.protocolVersion());
             getUsers().put(player.uniqueId(), packetUser);
         }
         return packetUser;

@@ -101,7 +101,7 @@ public class PacketEventsProcessor extends Processor<User, ResourcePackPush, Con
     protected @NotNull PacketUser<ResourcePackPush> getPacketUser(@NotNull User user) {
         PacketUser<ResourcePackPush> packetUser = getUsers().get(user.getUUID());
         if (packetUser == null) {
-            packetUser = new PacketUser<>(user.getUUID(), user.getClientVersion().isOlderThan(ClientVersion.V_1_20_3));
+            packetUser = new PacketUser<>(user.getUUID(), user.getClientVersion().getProtocolVersion());
             getUsers().put(user.getUUID(), packetUser);
         }
         return packetUser;
@@ -109,22 +109,15 @@ public class PacketEventsProcessor extends Processor<User, ResourcePackPush, Con
 
     @Override
     protected @Nullable ValueComparator<ResourcePackPush> getPackValue(@NotNull String name) {
-        switch (name) {
-            case "UUID":
-                return ResourcePackPush::getUniqueId;
-            case "URL":
-                return ResourcePackPush::getUrl;
-            case "HASH":
-                return ResourcePackPush::getHash;
-            case "PROMPT":
-                return ResourcePackPush::getPrompt;
-            case "ALL":
-                return pack -> pack;
-            case "ANY":
-                return pack -> true;
-            default:
-                return null;
-        }
+        return switch (name) {
+            case "UUID" -> ResourcePackPush::getUniqueId;
+            case "URL" -> ResourcePackPush::getUrl;
+            case "HASH" -> ResourcePackPush::getHash;
+            case "PROMPT" -> ResourcePackPush::getPrompt;
+            case "ALL" -> pack -> pack;
+            case "ANY" -> pack -> true;
+            default -> null;
+        };
     }
 
     @Override

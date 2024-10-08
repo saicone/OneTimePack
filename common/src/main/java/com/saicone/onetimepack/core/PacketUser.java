@@ -11,16 +11,20 @@ import java.util.UUID;
 public class PacketUser<PackT> {
 
     private static final UUID DUMMY_ID = new UUID(0, 0);
+    private static final int MINECRAFT_1_20_3 = 765;
 
     private final UUID uniqueId;
-    private final boolean uniquePack;
+    private final int protocolVersion;
+
+    private final transient boolean uniquePack;
 
     private final Map<UUID, PackT> cachedPacks = new LinkedHashMap<>();
     private final Map<UUID, PackResult> cachedResults = new HashMap<>();
 
-    public PacketUser(@NotNull UUID uniqueId, boolean uniquePack) {
+    public PacketUser(@NotNull UUID uniqueId, int protocolVersion) {
         this.uniqueId = uniqueId;
-        this.uniquePack = uniquePack;
+        this.protocolVersion = protocolVersion;
+        this.uniquePack = protocolVersion < MINECRAFT_1_20_3;
     }
 
     public boolean isUniquePack() {
@@ -30,6 +34,10 @@ public class PacketUser<PackT> {
     @NotNull
     public UUID getUniqueId() {
         return uniqueId;
+    }
+
+    public int getProtocolVersion() {
+        return protocolVersion;
     }
 
     @Nullable

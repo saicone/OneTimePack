@@ -43,6 +43,9 @@ protocol:
     remove: true
     # Allow or not all resource packs can be cleared for +1.20.3 clients
     clear: true
+    # Set minimum protocol version to send resource pack to player, visit https://wiki.vg/Protocol_version_numbers
+    # If a default status is set, will be sent to server
+    min-protocol: -1
   # PLAY protocol options
   play:
     # Allow remove may generate problems with severs using ItemsAdder

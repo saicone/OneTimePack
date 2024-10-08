@@ -88,6 +88,12 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> {
         }
 
         final PacketUser<PackT> user = getPacketUser(userType);
+        // Check protocol restrictions
+        if (user.getProtocolVersion() < options.getMinProtocol()) {
+            OneTimePack.log(2, "The user " + user.getUniqueId() + " doesn't meet the minimum protocol requirement");
+            return Optional.ofNullable(options.getDefaultStatus());
+        }
+
         // Cancel resource pack re-sending to player
         final UUID packId;
         if (!options.sendDuplicated() && (packId = user.contains(packet, options)) != null) {
