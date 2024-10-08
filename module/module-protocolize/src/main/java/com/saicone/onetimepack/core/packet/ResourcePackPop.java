@@ -24,12 +24,12 @@ public class ResourcePackPop extends AbstractPacket {
 
     public static final List<ProtocolIdMapping> DEFAULT_MAPPINGS = Arrays.asList(
             AbstractProtocolMapping.rangedIdMapping(MINECRAFT_1_20_3, MINECRAFT_1_20_3, 0x43),
-            AbstractProtocolMapping.rangedIdMapping(766, 766, 0x45)
+            AbstractProtocolMapping.rangedIdMapping(766, 767, 0x45)
     );
 
     public static final List<ProtocolIdMapping> DEFAULT_MAPPINGS_CONFIGURATION = Arrays.asList(
             AbstractProtocolMapping.rangedIdMapping(MINECRAFT_1_20_3, MINECRAFT_1_20_3, 0x06),
-            AbstractProtocolMapping.rangedIdMapping(766, 766, 0x08)
+            AbstractProtocolMapping.rangedIdMapping(766, 767, 0x08)
     );
 
     public static void register() {

@@ -35,12 +35,12 @@ public class ResourcePackStatus extends AbstractPacket {
             AbstractProtocolMapping.rangedIdMapping(MINECRAFT_1_19_1, MINECRAFT_1_20_1, 0x24),
             AbstractProtocolMapping.rangedIdMapping(MINECRAFT_1_20_2, MINECRAFT_1_20_2, 0x27),
             AbstractProtocolMapping.rangedIdMapping(MINECRAFT_1_20_3, MINECRAFT_1_20_3, 0x28),
-            AbstractProtocolMapping.rangedIdMapping(766, 766, 0x2B)
+            AbstractProtocolMapping.rangedIdMapping(766, 767, 0x2B)
     );
 
     public static final List<ProtocolIdMapping> DEFAULT_MAPPINGS_CONFIGURATION = Arrays.asList(
             AbstractProtocolMapping.rangedIdMapping(MINECRAFT_1_20_1, MINECRAFT_1_20_3, 0x05),
-            AbstractProtocolMapping.rangedIdMapping(766, 766, 0x06)
+            AbstractProtocolMapping.rangedIdMapping(766, 767, 0x06)
     );
 
     public static void register() {
