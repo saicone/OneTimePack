@@ -84,7 +84,7 @@ public class PacketEventsProcessor extends Processor<User, ResourcePackPush, Con
                 ? new ResourcePackStatus(packet.getHash(), result)
                 : new ResourcePackStatus(packet.getState(), packet.getUniqueId(), result);
         cached.setServerVersion(packet.getServerVersion());
-        PacketEvents.getAPI().getProtocolManager().receivePacketSilently(event.getUser().getChannel(), cached);
+        PacketEvents.getAPI().getProtocolManager().receivePacketSilently(event.getUser(), cached);
         OneTimePack.log(4, () -> "Sent cached result " + cached + " from user " + event.getUser().getUUID());
     }
 
