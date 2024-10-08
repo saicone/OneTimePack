@@ -2,7 +2,11 @@ package com.saicone.onetimepack.core;
 
 import com.saicone.onetimepack.OneTimePack;
 import com.saicone.onetimepack.module.listener.PacketListener;
-import dev.simplix.protocolize.api.*;
+import dev.simplix.protocolize.api.Direction;
+import dev.simplix.protocolize.api.PacketDirection;
+import dev.simplix.protocolize.api.Platform;
+import dev.simplix.protocolize.api.Protocol;
+import dev.simplix.protocolize.api.Protocolize;
 import dev.simplix.protocolize.api.listener.PacketReceiveEvent;
 import dev.simplix.protocolize.api.packet.AbstractPacket;
 import dev.simplix.protocolize.api.player.ProtocolizePlayer;
