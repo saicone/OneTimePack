@@ -20,8 +20,3 @@ dependencies {
     compileOnly libs.packetevents.api
     compileOnly libs.packetevents.velocity
 }
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-}

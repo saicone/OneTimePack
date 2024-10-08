@@ -20,8 +20,3 @@ dependencies {
     compileOnly libs.protocolize.api
     compileOnly libs.protocolize.velocity
 }
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-}
