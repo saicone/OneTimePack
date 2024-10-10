@@ -4,26 +4,39 @@ import com.saicone.onetimepack.util.FileUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.List;
+import java.io.Reader;
+import java.io.Writer;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class TinySettings {
+public abstract class TinySettings {
 
     private final String fileName;
-
-    private final Map<String, Object> paths = new HashMap<>();
+    private final Map<String, Object> data;
 
     public TinySettings(@NotNull String fileName) {
+        this(fileName, new LinkedHashMap<>());
+    }
+
+    public TinySettings(@NotNull String fileName, @NotNull Map<String, Object> data) {
         this.fileName = fileName;
+        this.data = data;
     }
 
     @NotNull
     public String getFileName() {
         return fileName;
+    }
+
+    @NotNull
+    public Map<String, Object> getData() {
+        return data;
     }
 
     @Nullable
@@ -38,9 +51,9 @@ public class TinySettings {
             return null;
         }
         if (path.length == 1) {
-            return paths.get(path[0]);
+            return data.get(path[0]);
         }
-        Map<String, Object> map = paths;
+        Map<String, Object> map = data;
         for (int i = 0; i < path.length; i++) {
             if (i + 1 >= path.length) {
                 break;
@@ -53,10 +66,6 @@ public class TinySettings {
             }
         }
         return map.get(path[path.length - 1]);
-    }
-
-    public Map<String, Object> getPaths() {
-        return paths;
     }
 
     @Nullable
@@ -92,97 +101,34 @@ public class TinySettings {
     }
 
     public void load(@NotNull File folder) {
-        paths.clear();
+        data.clear();
         final File file = FileUtils.saveResource(folder, fileName, false);
         if (file != null) {
-            try {
-                final List<String> lines = Files.readAllLines(file.toPath());
-                read(lines, paths, 0, 0);
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                final Object result = read(reader);
+                if (result instanceof Map<?,?> map) {
+                    for (Map.Entry<?, ?> entry : map.entrySet()) {
+                        data.put(String.valueOf(entry.getKey()), entry.getValue());
+                    }
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private int read(@NotNull List<String> lines, @NotNull Map<String, Object> paths, int index, int startSpaces) throws IOException {
-        for (int i = index; i < lines.size(); i++) {
-            final String rawLine = lines.get(i);
-            final String line = rawLine.trim();
-            final int charIndex = separatorIndex(line);
-            if (charIndex < 0) {
-                continue;
-            }
-            final int lineSpaces = countSpaces(rawLine);
-            if (lineSpaces < startSpaces) {
-                return i - index;
-            }
-
-            // Build key
-            final String key = line.substring(0, charIndex).toLowerCase();
-            // Build value
-            final String value = readValue(line.substring(charIndex + 1).trim());
-
-            // Check if the value is a Map
-            if (value.isEmpty() && i + 1 < lines.size()) {
-                boolean isMap = false;
-                for (int i1 = i + 1; i1 < lines.size(); i1++) {
-                    final String s = lines.get(i1);
-                    if (separatorIndex(s.trim()) < 0) {
-                        // Not value line
-                        continue;
-                    }
-                    // Sub value of map
-                    if (countSpaces(s) > lineSpaces) {
-                        isMap = true;
-                        final Map<String, Object> map = new HashMap<>();
-                        i = i1 + read(lines, map, i1, lineSpaces + 1) - 1;
-                        paths.put(key, map);
-                    }
-                    break;
-                }
-                if (isMap) {
-                    continue;
-                }
-            }
-
-            // Add simple value to current paths
-            if (value.equals("{}")) {
-                paths.put(key, new HashMap<>());
-            } else {
-                paths.put(key, value);
-            }
+    public void save(@NotNull File file) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            write(writer);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        return lines.size() - 1;
     }
 
-    private String readValue(@NotNull String value) {
-        final char[] chars = value.toCharArray();
-        for (int i = 0; i < chars.length; i++) {
-            if (chars[i] == '#') {
-                return value.substring(0, i);
-            }
-        }
-        return value;
-    }
+    @Nullable
+    public abstract Object read(@NotNull Reader reader) throws IOException;
 
-    private int separatorIndex(@NotNull String line) {
-        final int separatorIndex;
-        if (line.isEmpty() || line.charAt(0) == '#' || (separatorIndex = line.indexOf(':')) < 1) {
-            return -1;
-        }
-        return separatorIndex;
-    }
-
-    private int countSpaces(@NotNull String s) {
-        int spaces = 0;
-        for (char c : s.toCharArray()) {
-            if (c != ' ') {
-                break;
-            }
-            spaces++;
-        }
-        return spaces;
-    }
+    public abstract void write(@NotNull Writer writer) throws IOException;
 
     private int parseInt(@Nullable Object object, int def) {
         if (object == null) {
