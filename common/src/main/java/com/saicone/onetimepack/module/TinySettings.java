@@ -1,6 +1,7 @@
 package com.saicone.onetimepack.module;
 
 import com.saicone.onetimepack.util.FileUtils;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -12,8 +13,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 public abstract class TinySettings {
 
@@ -69,35 +75,119 @@ public abstract class TinySettings {
     }
 
     @Nullable
-    public String getString(@NotNull String path) {
+    @Contract("_, !null, _ -> !null")
+    public <T> T get(@NotNull String path, @Nullable T def, @NotNull Function<Object, T> parser) {
+        return get(path.toLowerCase().split("\\."), def, parser);
+    }
+
+    @Nullable
+    @Contract("_, !null, _ -> !null")
+    public <T> T get(@NotNull String[] path, @Nullable T def, @NotNull Function<Object, T> parser) {
         final Object object = get(path);
-        return object != null ? String.valueOf(object) : null;
+        final T parsed = object == null ? null : parser.apply(object);
+        return parsed == null ? def : parsed;
+    }
+
+    @Nullable
+    public String getString(@NotNull String path) {
+        return getString(path, null);
+    }
+
+    @Nullable
+    @Contract("_, !null -> !null")
+    public String getString(@NotNull String path, @Nullable String def) {
+        return get(path, def, String::valueOf);
     }
 
     @NotNull
-    public String getString(@NotNull String path, @NotNull String def) {
-        final Object object = get(path);
-        return object != null ? String.valueOf(object) : def;
+    public List<String> getStringList(@NotNull String path) {
+        return getList(path, String::valueOf);
     }
 
-    public int getInt(@NotNull String path) {
-        return parseInt(get(path), -1);
+    @Nullable
+    public Integer getInt(@NotNull String path) {
+        return getInt(path, null);
     }
 
-    public int getInt(@NotNull String path, int def) {
-        return parseInt(get(path), def);
+    @Nullable
+    @Contract("_, !null -> !null")
+    public Integer getInt(@NotNull String path, @Nullable Integer def) {
+        return get(path, def, object -> {
+            if (object instanceof Number number) {
+                return number.intValue();
+            }
+            try {
+                return Integer.parseInt(String.valueOf(object));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        });
     }
 
-    public boolean getBoolean(@NotNull String path) {
-        return String.valueOf(get(path)).equalsIgnoreCase("true");
+    @Nullable
+    public Boolean getBoolean(@NotNull String path) {
+        return getBoolean(path, null);
     }
 
-    public boolean getBoolean(@NotNull String path, boolean def) {
+    @Nullable
+    @Contract("_, !null -> !null")
+    public Boolean getBoolean(@NotNull String path, @Nullable Boolean def) {
+        return get(path, def, object -> {
+            if (object instanceof Number number) {
+                if (number.longValue() == 1) {
+                    return true;
+                } else if (number.longValue() == 0) {
+                    return false;
+                } else {
+                    return null;
+                }
+            }
+            return switch (String.valueOf(object)) {
+                case "true", "yes", "y" -> true;
+                case "false", "no", "n" -> false;
+                default -> null;
+            };
+        });
+    }
+
+    @NotNull
+    public <T> List<T> getList(@NotNull String path, @NotNull Function<Object, T> function) {
+        return getList(path.toLowerCase().split("\\."), function);
+    }
+
+    @NotNull
+    public <T> List<T> getList(@NotNull String[] path, @NotNull Function<Object, T> function) {
+        final List<T> list = new ArrayList<>();
         final Object object = get(path);
         if (object == null) {
-            return def;
+            return list;
         }
-        return String.valueOf(object).equalsIgnoreCase("true");
+        final Consumer<Object> executor = value -> {
+            if (value != null) {
+                final T t = function.apply(object);
+                if (t != null) {
+                    list.add(t);
+                }
+            }
+        };
+        if (object instanceof Iterable<?> iterable) {
+            for (Object value : iterable) {
+                executor.accept(value);
+            }
+        } else if (object instanceof Object[] array) {
+            for (Object value : array) {
+                executor.accept(value);
+            }
+        } else if (object.getClass().isArray()) {
+            final int length = Array.getLength(object);
+            for (int i = 0; i < length; i++) {
+                final Object value = Array.get(object, i);
+                executor.accept(value);
+            }
+        } else {
+            executor.accept(object);
+        }
+        return list;
     }
 
     public void load(@NotNull File folder) {
@@ -129,15 +219,4 @@ public abstract class TinySettings {
     public abstract Object read(@NotNull Reader reader) throws IOException;
 
     public abstract void write(@NotNull Writer writer) throws IOException;
-
-    private int parseInt(@Nullable Object object, int def) {
-        if (object == null) {
-            return def;
-        }
-        try {
-            return Integer.parseInt(String.valueOf(object));
-        } catch (NumberFormatException e) {
-            return def;
-        }
-    }
 }
