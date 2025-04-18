@@ -20,6 +20,8 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> imple
     private boolean sendCached1_20_2 = false;
     private boolean sendInvalid = false;
 
+    private transient int invalidCounter = 0;
+
     private final Map<UUID, PacketUser<PackT>> users = new HashMap<>();
 
     public void onLoad() {
@@ -53,6 +55,7 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> imple
     public void reload() {
         protocols.clear();
         groups.clear();
+        invalidCounter = 0;
 
         final ProtocolOptions<PackT> playOptions = ProtocolOptions.valueOf(ProtocolState.PLAY, this);
         if (playOptions.allowClear()) {
@@ -115,6 +118,7 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> imple
             if (isSendInvalid()) {
                 OneTimePack.log(4, "The packet doesn't contains HASH, but invalid packs are allowed");
             } else {
+                countInvalid();
                 OneTimePack.log(4, "Invalid packet HASH received, so will be cancelled");
                 return Optional.empty();
             }
@@ -187,6 +191,19 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> imple
 
     public boolean isSendInvalid() {
         return sendInvalid;
+    }
+
+    protected void countInvalid() {
+        if (invalidCounter < 5) {
+            invalidCounter++;
+            String path;
+            try {
+                path = OneTimePack.get().getProvider().getPluginFolder().getCanonicalPath();
+            } catch (Throwable t) {
+                path = "plugins/OneTimePack";
+            }
+            OneTimePack.log(2, "Detected invalid resource pack sending, if you are using ItemsAdder turn on the option 'send-invalid' on " + path + "/settings.yml");
+        }
     }
 
     @NotNull
