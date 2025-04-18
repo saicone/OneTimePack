@@ -23,7 +23,7 @@ subprojects {
         if (project.name != 'common') {
             implementation project(':common')
         }
-        compileOnly 'org.jetbrains:annotations:24.0.1'
+        compileOnly 'org.jetbrains:annotations:26.0.2'
         compileOnly fileTree(dir: 'libs', includes: ['*.jar'])
     }
 
