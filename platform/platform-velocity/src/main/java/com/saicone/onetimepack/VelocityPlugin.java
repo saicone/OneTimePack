@@ -1,6 +1,8 @@
 package com.saicone.onetimepack;
 
+import com.saicone.onetimepack.core.PacketUser;
 import com.saicone.onetimepack.core.Processor;
+import com.saicone.onetimepack.core.VelocityPacketUser;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
@@ -15,6 +17,7 @@ import org.slf4j.Logger;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.UUID;
 
 public class VelocityPlugin implements OneTimePack.Provider {
 
@@ -65,6 +68,13 @@ public class VelocityPlugin implements OneTimePack.Provider {
 
     public Path getDataDirectory() {
         return dataDirectory;
+    }
+
+    @Override
+    public @NotNull <PackT> PacketUser<PackT> getUser(@NotNull UUID uniqueId) {
+        return getProxy().getPlayer(uniqueId)
+                .map(player -> new VelocityPacketUser<PackT>(player))
+                .orElseThrow(() -> new IllegalArgumentException("The player " + uniqueId + " is not connected"));
     }
 
     @Override

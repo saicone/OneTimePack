@@ -1,5 +1,6 @@
 package com.saicone.onetimepack.core;
 
+import com.google.common.base.Suppliers;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -7,45 +8,36 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
-public class PacketUser<PackT> {
+public abstract class PacketUser<PackT> {
 
     private static final UUID DUMMY_ID = new UUID(0, 0);
     private static final int MINECRAFT_1_20_3 = 765;
 
-    private final UUID uniqueId;
-    private final int protocolVersion;
-
-    private final transient boolean uniquePack;
+    private final transient Supplier<Boolean> uniquePack = Suppliers.memoize(() -> getProtocolVersion() < MINECRAFT_1_20_3);
 
     private final Map<UUID, PackT> cachedPacks = new LinkedHashMap<>();
     private final Map<UUID, PackResult> cachedResults = new HashMap<>();
 
-    public PacketUser(@NotNull UUID uniqueId, int protocolVersion) {
-        this.uniqueId = uniqueId;
-        this.protocolVersion = protocolVersion;
-        this.uniquePack = protocolVersion < MINECRAFT_1_20_3;
-    }
-
     public boolean isUniquePack() {
-        return uniquePack;
+        return uniquePack.get();
     }
 
     @NotNull
-    public UUID getUniqueId() {
-        return uniqueId;
-    }
+    public abstract UUID getUniqueId();
 
-    public int getProtocolVersion() {
-        return protocolVersion;
-    }
+    public abstract int getProtocolVersion();
+
+    @Nullable
+    public abstract String getServer();
 
     @Nullable
     public PackT getPack() {
         if (cachedPacks.isEmpty()) {
             return null;
         }
-        if (uniquePack) {
+        if (isUniquePack()) {
             return cachedPacks.get(DUMMY_ID);
         }
         return cachedPacks.entrySet().iterator().next().getValue();
@@ -61,7 +53,7 @@ public class PacketUser<PackT> {
         if (cachedResults.isEmpty()) {
             return null;
         }
-        if (uniquePack) {
+        if (isUniquePack()) {
             return cachedResults.get(DUMMY_ID);
         }
         return cachedResults.entrySet().iterator().next().getValue();
@@ -69,7 +61,7 @@ public class PacketUser<PackT> {
 
     @Nullable
     public PackResult getResult(@Nullable UUID uniqueId) {
-        if (uniquePack) {
+        if (isUniquePack()) {
             return cachedResults.get(DUMMY_ID);
         }
         return cachedResults.get(uniqueId);
@@ -96,7 +88,7 @@ public class PacketUser<PackT> {
     }
 
     public void putPack(@Nullable UUID id, @NotNull PackT packet) {
-        if (id == null || uniquePack) {
+        if (id == null || isUniquePack()) {
             cachedPacks.put(DUMMY_ID, packet);
         } else {
             cachedPacks.put(id, packet);
@@ -104,7 +96,7 @@ public class PacketUser<PackT> {
     }
 
     public <E extends Enum<E>> void putResult(@Nullable UUID id, @NotNull E result) {
-        if (id == null || uniquePack) {
+        if (id == null || isUniquePack()) {
             cachedResults.put(DUMMY_ID, PackResult.from(result));
         } else {
             cachedResults.put(id, PackResult.from(result));
@@ -112,7 +104,7 @@ public class PacketUser<PackT> {
     }
 
     public void putResult(@Nullable UUID id, @NotNull PackResult result) {
-        if (id == null || uniquePack) {
+        if (id == null || isUniquePack()) {
             cachedResults.put(DUMMY_ID, result);
         } else {
             cachedResults.put(id, result);
@@ -124,7 +116,7 @@ public class PacketUser<PackT> {
     }
 
     public void removePack(@Nullable UUID id) {
-        if (id == null || uniquePack) {
+        if (id == null || isUniquePack()) {
             cachedPacks.remove(DUMMY_ID);
         } else {
             cachedPacks.remove(id);
@@ -132,7 +124,7 @@ public class PacketUser<PackT> {
     }
 
     public void handleResult(@Nullable UUID id) {
-        if (id == null || uniquePack) {
+        if (id == null || isUniquePack()) {
             cachedPacks.clear();
         } else {
             cachedPacks.remove(id);

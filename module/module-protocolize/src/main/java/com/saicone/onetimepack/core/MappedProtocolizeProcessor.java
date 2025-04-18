@@ -63,32 +63,16 @@ public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<Sta
     }
 
     @Override
-    public @NotNull ProtocolOptions<ResourcePackPush> getOptions(@NotNull Protocol protocol) {
-        if (protocol == Protocol.CONFIGURATION) {
-            return getConfigurationOptions();
-        } else {
-            return getPlayOptions();
-        }
-    }
-
-    @Override
     protected @Nullable ValueComparator<ResourcePackPush> getPackValue(@NotNull String name) {
-        switch (name) {
-            case "UUID":
-                return ResourcePackPush::getUniqueId;
-            case "URL":
-                return ResourcePackPush::getUrl;
-            case "HASH":
-                return ResourcePackPush::getHash;
-            case "PROMPT":
-                return ResourcePackPush::getPrompt;
-            case "ALL":
-                return pack -> pack;
-            case "ANY":
-                return pack -> true;
-            default:
-                return null;
-        }
+        return switch (name) {
+            case "UUID" -> ResourcePackPush::getUniqueId;
+            case "URL" -> ResourcePackPush::getUrl;
+            case "HASH" -> ResourcePackPush::getHash;
+            case "PROMPT" -> ResourcePackPush::getPrompt;
+            case "ALL" -> pack -> pack;
+            case "ANY" -> pack -> true;
+            default -> null;
+        };
     }
 
     @Override

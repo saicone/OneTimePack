@@ -4,27 +4,26 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
-import java.util.function.Function;
 
 @FunctionalInterface
 public interface ValueComparator<E> {
 
     @NotNull
-    static <E> ValueComparator<E> read(@NotNull String str, @NotNull Function<String, ValueComparator<E>> provider) {
+    static <E> ValueComparator<E> read(@NotNull String str, @NotNull Provider<E> provider) {
         ValueComparator<E> result = null;
         for (String block : str.split("(?i) (AND|&&) ")) {
             ValueComparator<E> append = null;
             if (block.contains(" OR ")) {
                 for (String optional : block.split("(?i) (OR|[|][|]) ")) {
-                    final ValueComparator<E> comparator = provider.apply(optional);
+                    final ValueComparator<E> comparator = provider.readComparator(optional);
                     if (append == null) {
                         append = comparator;
-                    } else {
+                    } else if (comparator != null) {
                         append = append.or(comparator);
                     }
                 }
             } else {
-                append = provider.apply(block);
+                append = provider.readComparator(block);
             }
 
             if (append != null) {
@@ -92,5 +91,10 @@ public interface ValueComparator<E> {
                 return ValueComparator.this.matches(e1, e2) || comparator.matches(e1, e2);
             }
         };
+    }
+
+    interface Provider<E> {
+        @Nullable
+        ValueComparator<E> readComparator(@NotNull String input);
     }
 }

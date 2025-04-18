@@ -92,22 +92,8 @@ public class VPacketEventsProcessor extends Processor<Player, ResourcePackReques
     }
 
     @Override
-    public @NotNull ProtocolOptions<ResourcePackRequestPacket> getOptions(@NotNull ProtocolState state) {
-        if (state == ProtocolState.CONFIGURATION) {
-            return getConfigurationOptions();
-        } else {
-            return getPlayOptions();
-        }
-    }
-
-    @Override
-    protected @NotNull PacketUser<ResourcePackRequestPacket> getPacketUser(@NotNull Player player) {
-        var packetUser = getUsers().get(player.getUniqueId());
-        if (packetUser == null) {
-            packetUser = new PacketUser<>(player.getUniqueId(), player.getProtocolVersion().getProtocol());
-            getUsers().put(player.getUniqueId(), packetUser);
-        }
-        return packetUser;
+    protected @NotNull UUID getUserId(@NotNull Player player) {
+        return player.getUniqueId();
     }
 
     @Override

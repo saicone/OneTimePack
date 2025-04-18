@@ -25,7 +25,7 @@ public class PacketEventsProcessor extends Processor<User, ResourcePackPush, Con
 
     @Override
     public void onEnable() {
-        // IDK why is this enabled by default
+        // IDK why this is enabled by default
         PacketEvents.getAPI().getSettings().debug(false);
         PacketEvents.getAPI().getEventManager().registerListener(this, PacketListenerPriority.LOWEST);
     }
@@ -84,27 +84,13 @@ public class PacketEventsProcessor extends Processor<User, ResourcePackPush, Con
                 ? new ResourcePackStatus(packet.getHash(), result)
                 : new ResourcePackStatus(packet.getState(), packet.getUniqueId(), result);
         cached.setServerVersion(packet.getServerVersion());
-        PacketEvents.getAPI().getProtocolManager().receivePacketSilently(event.getUser(), cached);
+        PacketEvents.getAPI().getProtocolManager().receivePacketSilently(event.getUser().getChannel(), cached);
         OneTimePack.log(4, () -> "Sent cached result " + cached + " from user " + event.getUser().getUUID());
     }
 
     @Override
-    public @NotNull ProtocolOptions<ResourcePackPush> getOptions(@NotNull ConnectionState state) {
-        if (state == ConnectionState.CONFIGURATION) {
-            return getConfigurationOptions();
-        } else {
-            return getPlayOptions();
-        }
-    }
-
-    @Override
-    protected @NotNull PacketUser<ResourcePackPush> getPacketUser(@NotNull User user) {
-        PacketUser<ResourcePackPush> packetUser = getUsers().get(user.getUUID());
-        if (packetUser == null) {
-            packetUser = new PacketUser<>(user.getUUID(), user.getClientVersion().getProtocolVersion());
-            getUsers().put(user.getUUID(), packetUser);
-        }
-        return packetUser;
+    protected @NotNull UUID getUserId(@NotNull User user) {
+        return user.getUUID();
     }
 
     @Override

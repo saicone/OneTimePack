@@ -53,13 +53,14 @@ public class TinyYaml extends TinySettings {
                 final Object value;
                 if (line.length() - 1 == separator || line.substring(separator + 1).trim().startsWith("#")) {
                     final String nextLine = reader.fly();
-                    if (nextLine == null || spaces(nextLine) < (state == ROOT ? 1 : prefix)) {
+                    final int nextSpaces;
+                    if (nextLine == null || (nextSpaces = spaces(nextLine)) < (state == ROOT ? 1 : prefix)) {
                         value = "";
                     } else {
                         if (nextLine.trim().startsWith("-")) {
                             value = read(reader, prefix, LIST);
                         } else {
-                            value = read(reader, prefix + 1, MAP);
+                            value = read(reader, nextSpaces, MAP);
                         }
                     }
                 } else {
@@ -79,11 +80,15 @@ public class TinyYaml extends TinySettings {
                     reader.with(line);
                     break;
                 }
-                line = line.trim();
-                if (line.isEmpty() || line.charAt(0) != '-') {
+                final String trim = line.trim();
+                if (trim.isEmpty()) {
                     continue;
                 }
-                line = line.substring(1);
+                if (trim.charAt(0) != '-') {
+                    reader.with(line);
+                    break;
+                }
+                line = trim.substring(1);
                 final int totalSpaces = spaces + spaces(line) + 1;
                 line = line.trim();
                 if (line.isEmpty()) {
@@ -97,7 +102,7 @@ public class TinyYaml extends TinySettings {
                 } else if (line.indexOf(':') > 0 && first != '\"' && first != '\'') {
                     value = read(reader.with(" ".repeat(totalSpaces) + line), totalSpaces, MAP);
                 } else {
-                    value = read(reader, spaces + 1, SCALAR);
+                    value = read(reader.with(line), spaces + 1, SCALAR);
                 }
                 if (value != null) {
                     list.add(value);

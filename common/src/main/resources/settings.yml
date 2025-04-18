@@ -10,7 +10,7 @@ plugin:
 
 # Protocol state configuration
 protocol:
-  # default options to all protocols
+  # Default options to all protocols
   default:
     # Pack comparator:
     # UUID   = Compare by unique ID (Only available for MC +1.20.3)
@@ -55,6 +55,20 @@ protocol:
   # CONFIGURATION protocol options
   configuration:
     behavior: STACK
+
+# Server groups configuration
+group:
+  # Group ID
+  example:
+    # Servers that the group belong
+    servers:
+      - myserver
+      - otherserver
+      - aserver
+    # Override protocol configuration
+    protocol:
+      default:
+        behavior: STACK
 
 # Experimental configuration
 experimental:

@@ -5,15 +5,17 @@ import com.saicone.onetimepack.util.ValueComparator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> {
+public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> implements ValueComparator.Provider<PackT> {
 
-    private ProtocolOptions<PackT> playOptions;
-    private ProtocolOptions<PackT> configurationOptions;
+    private final Map<ProtocolState, ProtocolOptions<PackT>> protocols = new HashMap<>();
+    private final Map<String, ServerGroup<PackT>> groups = new HashMap<>();
 
     private boolean sendCached1_20_2 = false;
     private boolean sendInvalid = false;
@@ -43,11 +45,16 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> {
 
     public void disable() {
         onDisable();
+        protocols.clear();
+        groups.clear();
         clear();
     }
 
     public void reload() {
-        playOptions = ProtocolOptions.of(ProtocolState.PLAY, this::getPackComparator);
+        protocols.clear();
+        groups.clear();
+
+        final ProtocolOptions<PackT> playOptions = ProtocolOptions.valueOf(ProtocolState.PLAY, this);
         if (playOptions.allowClear()) {
             OneTimePack.log(2, "The resource pack clear was allowed to be used on PLAY protocol, " +
                     "take in count this option may generate problems with < 1.20.3 servers using ViaVersion");
@@ -56,7 +63,16 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> {
             OneTimePack.log(2, "The resource pack remove was allowed to be used on PLAY protocol, " +
                     "take in count this option may generate problems with servers using ItemsAdder");
         }
-        configurationOptions = ProtocolOptions.of(ProtocolState.CONFIGURATION, this::getPackComparator);
+        protocols.put(ProtocolState.PLAY, playOptions);
+        protocols.put(ProtocolState.CONFIGURATION, ProtocolOptions.valueOf(ProtocolState.CONFIGURATION, this));
+
+        for (String id : OneTimePack.SETTINGS.getKeys("group")) {
+            final ServerGroup<PackT> group = ServerGroup.valueOf(id, this);
+            for (String server : group.getServers()) {
+                groups.put(server, group);
+            }
+        }
+
         sendCached1_20_2 = OneTimePack.SETTINGS.getBoolean("experimental.send-cached-1-20-2", false);
         if (sendCached1_20_2) {
             OneTimePack.log(2, "The cached resource pack was allowed to be re-sended to 1.20.2 clients, " +
@@ -70,12 +86,15 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> {
 
     @Nullable
     protected Optional<PackResult> onPackPush(@NotNull UserT userType, @NotNull StateT state, @NotNull PackT packet, @Nullable UUID id, @Nullable Object hash) {
-        return onPackPush(userType, state, packet, id, hash, getOptions(state));
-    }
-
-    @Nullable
-    protected Optional<PackResult> onPackPush(@NotNull UserT userType, @NotNull StateT state, @NotNull PackT packet, @Nullable UUID id, @Nullable Object hash, @NotNull ProtocolOptions<PackT> options) {
         OneTimePack.log(4, () -> "Received " + packet.getClass().getSimpleName() + ": " + packet);
+
+        final PacketUser<PackT> user = getPacketUser(userType);
+        final String server = user.getServer();
+        final ProtocolOptions<PackT> options = getOptions(state, server);
+        if (!options.isEnabled()) {
+            OneTimePack.log(4,  () -> "Pack push is disabled for user " + user.getUniqueId() + (server != null ? " at server " + server : "") + " with protocol " + state);
+            return null;
+        }
 
         // Avoid invalid resource pack sending
         if (hash == null || String.valueOf(hash).equalsIgnoreCase("null")) {
@@ -87,7 +106,6 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> {
             }
         }
 
-        final PacketUser<PackT> user = getPacketUser(userType);
         // Check protocol restrictions
         if (user.getProtocolVersion() < options.getMinProtocol()) {
             OneTimePack.log(2, "The user " + user.getUniqueId() + " doesn't meet the minimum protocol requirement");
@@ -121,19 +139,23 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> {
     }
 
     protected boolean onPackPop(@NotNull UserT userType, @NotNull StateT state, @NotNull Object packet, @Nullable UUID id) {
-        return onPackPop(userType, state, packet, id, getOptions(state));
-    }
+        final PacketUser<PackT> user = getPacketUser(userType);
+        final String server = user.getServer();
+        final ProtocolOptions<PackT> options = getOptions(state, server);
+        if (!options.isEnabled()) {
+            OneTimePack.log(4,  () -> "Pack pop is disabled for user " + user.getUniqueId() + (server != null ? " at server " + server : "") + " with protocol " + state);
+            return false;
+        }
 
-    protected boolean onPackPop(@NotNull UserT userType, @NotNull StateT state, @NotNull Object packet, @Nullable UUID id, @NotNull ProtocolOptions<PackT> options) {
         if (!options.allowClear() && id == null) {
-            OneTimePack.log(4, () -> "Cancelling packs clear from " + state.name() + " protocol for player " + getPacketUser(userType).getUniqueId());
+            OneTimePack.log(4, () -> "Cancelling packs clear from " + state.name() + " protocol for player " + user.getUniqueId());
             return true;
         }
         if (!options.allowRemove()) {
-            OneTimePack.log(4, () -> "Cancelling pack remove from " + state.name() + " protocol for player " + getPacketUser(userType).getUniqueId());
+            OneTimePack.log(4, () -> "Cancelling pack remove from " + state.name() + " protocol for player " + user.getUniqueId());
             return true;
         }
-        final PacketUser<PackT> user = getPacketUser(userType);
+
         user.removePack(id);
         OneTimePack.log(4, () -> "Remove cached packet using: " + packet + " from player " + user.getUniqueId());
         return false;
@@ -154,21 +176,19 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> {
     }
 
     @NotNull
-    public ProtocolOptions<PackT> getOptions(@NotNull ProtocolState protocol) {
-        return protocol == ProtocolState.CONFIGURATION ? getConfigurationOptions() : getPlayOptions();
+    public ProtocolOptions<PackT> getOptions(@NotNull StateT state) {
+        return getOptions(state, null);
     }
 
     @NotNull
-    public abstract ProtocolOptions<PackT> getOptions(@NotNull StateT state);
-
-    @NotNull
-    public ProtocolOptions<PackT> getPlayOptions() {
-        return playOptions;
-    }
-
-    @NotNull
-    public ProtocolOptions<PackT> getConfigurationOptions() {
-        return configurationOptions;
+    public ProtocolOptions<PackT> getOptions(@NotNull StateT state, @Nullable String server) {
+        if (server != null) {
+            final ServerGroup<PackT> options = groups.getOrDefault(server, groups.get("default"));
+            if (options != null) {
+                return options.getOptions(ProtocolState.of(state));
+            }
+        }
+        return protocols.get(ProtocolState.of(state));
     }
 
     @NotNull
@@ -177,10 +197,24 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> {
     }
 
     @NotNull
-    protected abstract PacketUser<PackT> getPacketUser(@NotNull UserT user);
+    protected PacketUser<PackT> getPacketUser(@NotNull UserT user) {
+        final UUID uniqueId = getUserId(user);
+        PacketUser<PackT> packetUser = users.get(uniqueId);
+        if (packetUser == null) {
+            packetUser = OneTimePack.get().getProvider().getUser(uniqueId);
+            users.put(uniqueId, packetUser);
+        }
+        return packetUser;
+    }
+
+    @NotNull
+    protected abstract UUID getUserId(@NotNull UserT user);
 
     @Nullable
-    protected ValueComparator<PackT> getPackComparator(@NotNull String input) {
+    protected abstract ValueComparator<PackT> getPackValue(@NotNull String name);
+
+    @Override
+    public @Nullable ValueComparator<PackT> readComparator(@NotNull String input) {
         final boolean nonNull = input.charAt(0) == '!';
         final ValueComparator<PackT> comparator = getPackValue((nonNull ? input.substring(1) : input).toUpperCase());
         if (comparator == null) {
@@ -189,9 +223,6 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> {
         }
         return nonNull ? comparator.nonNull() : comparator;
     }
-
-    @Nullable
-    protected abstract ValueComparator<PackT> getPackValue(@NotNull String name);
 
     public void clear() {
         OneTimePack.log(4, "The data from packet handler was cleared");

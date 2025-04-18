@@ -70,7 +70,7 @@ public class InfoReader implements Closeable {
     public String fly() throws IOException {
         final String line = readNextLine();
         if (line != null) {
-            toConsume.add(line);
+            toConsume.add(0, line);
         }
         return line;
     }

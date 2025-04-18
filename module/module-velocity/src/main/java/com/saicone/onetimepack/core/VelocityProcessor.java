@@ -85,22 +85,8 @@ public class VelocityProcessor extends Processor<Player, ResourcePackInfo, Proto
     }
 
     @Override
-    public @NotNull ProtocolOptions<ResourcePackInfo> getOptions(@NotNull ProtocolState state) {
-        if (state == ProtocolState.CONFIGURATION) {
-            return getConfigurationOptions();
-        } else {
-            return getPlayOptions();
-        }
-    }
-
-    @Override
-    protected @NotNull PacketUser<ResourcePackInfo> getPacketUser(@NotNull Player player) {
-        var packetUser = getUsers().get(player.getUniqueId());
-        if (packetUser == null) {
-            packetUser = new PacketUser<>(player.getUniqueId(), player.getProtocolVersion().getProtocol());
-            getUsers().put(player.getUniqueId(), packetUser);
-        }
-        return packetUser;
+    protected @NotNull UUID getUserId(@NotNull Player player) {
+        return player.getUniqueId();
     }
 
     @Override

@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -86,6 +88,18 @@ public abstract class TinySettings {
         final Object object = get(path);
         final T parsed = object == null ? null : parser.apply(object);
         return parsed == null ? def : parsed;
+    }
+
+    @Nullable
+    @Contract("_, _, !null -> !null")
+    public <P, T> T getRecursively(@NotNull P[] paths, @NotNull BiFunction<TinySettings, P, T> getter, @Nullable T def) {
+        for (@NotNull P path : paths) {
+            final T value = getter.apply(this, path);
+            if (value != null) {
+                return value;
+            }
+        }
+        return def;
     }
 
     @Nullable
@@ -164,7 +178,7 @@ public abstract class TinySettings {
         }
         final Consumer<Object> executor = value -> {
             if (value != null) {
-                final T t = function.apply(object);
+                final T t = function.apply(value);
                 if (t != null) {
                     list.add(t);
                 }
@@ -188,6 +202,13 @@ public abstract class TinySettings {
             executor.accept(object);
         }
         return list;
+    }
+
+    @NotNull
+    @SuppressWarnings("unchecked")
+    public Set<String> getKeys(@NotNull String path) {
+        final Object object = get(path.toLowerCase().split("\\."));
+        return object instanceof Map<?,?> ? ((Map<String, ?>) object).keySet() : Set.of();
     }
 
     public void load(@NotNull File folder) {

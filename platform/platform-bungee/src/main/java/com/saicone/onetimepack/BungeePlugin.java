@@ -1,10 +1,14 @@
 package com.saicone.onetimepack;
 
+import com.saicone.onetimepack.core.BungeePacketUser;
+import com.saicone.onetimepack.core.PacketUser;
 import com.saicone.onetimepack.core.Processor;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.CommandSender;
+import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
 import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.Listener;
@@ -13,6 +17,7 @@ import net.md_5.bungee.event.EventHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public class BungeePlugin extends Plugin implements Listener, OneTimePack.Provider {
@@ -53,6 +58,15 @@ public class BungeePlugin extends Plugin implements Listener, OneTimePack.Provid
     @EventHandler
     public void onDisconnect(PlayerDisconnectEvent event) {
         OneTimePack.get().getPacketHandler().clear(event.getPlayer().getUniqueId());
+    }
+
+    @Override
+    public @NotNull <PackT> PacketUser<PackT> getUser(@NotNull UUID uniqueId) {
+        final ProxiedPlayer player = ProxyServer.getInstance().getPlayer(uniqueId);
+        if (player == null) {
+            throw new IllegalArgumentException("The player " + uniqueId + " is not connected");
+        }
+        return new BungeePacketUser<>(player);
     }
 
     @Override

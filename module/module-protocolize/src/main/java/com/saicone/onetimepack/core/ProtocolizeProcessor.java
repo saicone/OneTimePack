@@ -113,22 +113,8 @@ public abstract class ProtocolizeProcessor<StartT, PushT, StatusT> extends Proce
     }
 
     @Override
-    public @NotNull ProtocolOptions<PushT> getOptions(@NotNull Protocol protocol) {
-        if (protocol == Protocol.CONFIGURATION) {
-            return getConfigurationOptions();
-        } else {
-            return getPlayOptions();
-        }
-    }
-
-    @Override
-    protected @NotNull PacketUser<PushT> getPacketUser(@NotNull ProtocolizePlayer player) {
-        PacketUser<PushT> packetUser = getUsers().get(player.uniqueId());
-        if (packetUser == null) {
-            packetUser = new PacketUser<>(player.uniqueId(), player.protocolVersion());
-            getUsers().put(player.uniqueId(), packetUser);
-        }
-        return packetUser;
+    protected @NotNull UUID getUserId(@NotNull ProtocolizePlayer player) {
+        return player.uniqueId();
     }
 
     @NotNull
