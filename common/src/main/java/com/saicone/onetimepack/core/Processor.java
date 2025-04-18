@@ -66,11 +66,25 @@ public abstract class Processor<UserT, PackT, StateT extends Enum<StateT>> imple
         protocols.put(ProtocolState.PLAY, playOptions);
         protocols.put(ProtocolState.CONFIGURATION, ProtocolOptions.valueOf(ProtocolState.CONFIGURATION, this));
 
+        final Map<String, List<String>> duplicated = new HashMap<>();
         for (String id : OneTimePack.SETTINGS.getKeys("group")) {
             final ServerGroup<PackT> group = ServerGroup.valueOf(id, this);
             for (String server : group.getServers()) {
-                groups.put(server, group);
+                final ServerGroup<PackT> replaced = groups.put(server, group);
+                if (replaced != null) {
+                    duplicated.computeIfAbsent(server, s -> {
+                        final List<String> list = new ArrayList<>();
+                        list.add(replaced.getId());
+                        return list;
+                    }).add(group.getId());
+                }
             }
+        }
+        for (Map.Entry<String, List<String>> entry : duplicated.entrySet()) {
+            final String server = entry.getKey();
+            final List<String> groups = entry.getValue();
+            OneTimePack.log(2, "The server name '" + server + "' is in more than one group: " + String.join(", ", groups));
+            OneTimePack.log(2, "Only the group '" + groups.get(groups.size() - 1) + "' will be used for server '" + server + "'");
         }
 
         sendCached1_20_2 = OneTimePack.SETTINGS.getBoolean("experimental.send-cached-1-20-2", false);
