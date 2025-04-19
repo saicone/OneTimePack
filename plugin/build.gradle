@@ -1,0 +1,17 @@
+subprojects {
+    apply plugin: 'com.gradleup.shadow'
+
+    jar {
+        dependsOn (shadowJar)
+    }
+
+    shadowJar {
+        archiveBaseName.set(rootProject.name + '-' + project.name)
+        archiveClassifier.set('')
+        destinationDirectory.set(file(rootProject.layout.buildDirectory.dir('libs')))
+        if (project.name != 'bungeecord-protocolize') {
+            exclude 'mappings.json'
+        }
+        minimize()
+    }
+}

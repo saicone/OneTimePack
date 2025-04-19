@@ -6,7 +6,6 @@ plugins {
 subprojects {
     apply plugin: 'java'
     apply plugin: 'idea'
-    apply plugin: 'com.gradleup.shadow'
 
     idea {
         module {
@@ -34,22 +33,6 @@ subprojects {
     java {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    jar {
-        if (project.name.startsWith('bungeecord-') || project.name.startsWith('velocity-')) {
-            dependsOn (shadowJar)
-        }
-    }
-
-    shadowJar {
-        archiveBaseName.set(rootProject.name + '-' + project.name)
-        archiveClassifier.set('')
-        destinationDirectory.set(file(rootProject.layout.buildDirectory.dir('libs')))
-        if (project.name != 'bungeecord-protocolize') {
-            exclude 'mappings.json'
-        }
-        minimize()
     }
 }
 
