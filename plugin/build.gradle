@@ -9,7 +9,7 @@ subprojects {
         archiveBaseName.set(rootProject.name + '-' + project.name)
         archiveClassifier.set('')
         destinationDirectory.set(file(rootProject.layout.buildDirectory.dir('libs')))
-        if (project.name != 'bungeecord-protocolize') {
+        if (project.name != 'bungeecord-protocolize' && project.name != 'bungeecord-api') {
             exclude 'mappings.json'
         }
         minimize()

@@ -1,26 +1,40 @@
 package com.saicone.onetimepack.util;
 
 import com.google.common.base.Suppliers;
-import dev.simplix.protocolize.api.util.ProtocolVersions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
 public class ProtocolVersion {
 
+    private static final List<Class<?>> MAGIC_CLASSES = new ArrayList<>();
+
+    static {
+        try {
+            MAGIC_CLASSES.add(Class.forName("dev.simplix.protocolize.api.util.ProtocolVersions"));
+        } catch (Throwable ignored) { }
+        try {
+            MAGIC_CLASSES.add(Class.forName("net.md_5.bungee.protocol.ProtocolConstants"));
+        } catch (Throwable ignored) { }
+    }
+
     private static final Supplier<Map<String, Integer>> protocols = Suppliers.memoize(() -> {
         final Map<String, Integer> map = new HashMap<>();
-        for (Field field : ProtocolVersions.class.getDeclaredFields()) {
-            final String name = field.getName().toUpperCase();
-            if (name.startsWith("MINECRAFT_")) {
-                try {
-                    map.put(name.substring(10).replace('_', '.').toLowerCase(), (int) field.get(null));
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+        for (Class<?> clazz : MAGIC_CLASSES) {
+            for (Field field : clazz.getDeclaredFields()) {
+                final String name = field.getName().toUpperCase();
+                if (name.startsWith("MINECRAFT_")) {
+                    try {
+                        map.put(name.substring(10).replace('_', '.').toLowerCase(), (int) field.get(null));
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }

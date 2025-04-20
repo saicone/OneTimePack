@@ -1,0 +1,5 @@
+name: OneTimePack
+main: com.saicone.onetimepack.BungeeBootstrap
+version: ${version}
+description: Send the same resource pack only one time
+author: Rubenicos

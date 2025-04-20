@@ -5,8 +5,6 @@ import com.google.gson.JsonParser;
 import com.saicone.onetimepack.OneTimePack;
 import com.saicone.onetimepack.util.FileUtils;
 import com.saicone.onetimepack.util.ProtocolVersion;
-import dev.simplix.protocolize.api.mapping.AbstractProtocolMapping;
-import dev.simplix.protocolize.api.mapping.ProtocolIdMapping;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,16 +14,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Mappings {
+public class Mappings<T> {
 
     private final File folder;
     private final String fileName;
+    private final Supplier<T> supplier;
 
-    private Map<String, Map<String, List<ProtocolIdMapping>>> loaded = new HashMap<>();
+    private Map<String, Map<String, List<T>>> loaded = new HashMap<>();
 
-    public Mappings(@NotNull File folder, @NotNull String fileName) {
+    public Mappings(@NotNull File folder, @NotNull String fileName, @NotNull Supplier<T> supplier) {
         this.folder = folder;
         this.fileName = fileName;
+        this.supplier = supplier;
     }
 
     @NotNull
@@ -38,8 +38,13 @@ public class Mappings {
         return fileName;
     }
 
+    @NotNull
+    public Supplier<T> getSupplier() {
+        return supplier;
+    }
+
     @Nullable
-    public List<ProtocolIdMapping> getMappings(@NotNull String name, @NotNull String protocol) {
+    public List<T> getMappings(@NotNull String name, @NotNull String protocol) {
         if (loaded.containsKey(name)) {
             return loaded.get(name).get(protocol);
         } else {
@@ -80,21 +85,21 @@ public class Mappings {
     }
 
     @NotNull
-    private Map<String, Map<String, List<ProtocolIdMapping>>> load(@NotNull JsonObject json) {
-        final Map<String, Map<String, List<ProtocolIdMapping>>> loaded = new HashMap<>();
+    private Map<String, Map<String, List<T>>> load(@NotNull JsonObject json) {
+        final Map<String, Map<String, List<T>>> loaded = new HashMap<>();
         for (String s : json.keySet()) {
             final String key = s.trim().toLowerCase();
             if (!key.startsWith("packet")) {
                 continue;
             }
-            final Map<String, List<ProtocolIdMapping>> mappings = loadMappings(json.getAsJsonObject(s));
+            final Map<String, List<T>> mappings = loadMappings(json.getAsJsonObject(s));
             if (mappings == null || mappings.isEmpty()) {
                 OneTimePack.log(1, "The provided json file doesn't contains mappings on '" + s + "' configuration");
                 continue;
             }
             final String[] split = key.split("-", 2);
             final String protocol = split.length > 1 ? split[1] : "play";
-            for (Map.Entry<String, List<ProtocolIdMapping>> entry : mappings.entrySet()) {
+            for (Map.Entry<String, List<T>> entry : mappings.entrySet()) {
                 loaded.computeIfAbsent(entry.getKey(), __ -> new HashMap<>()).put(protocol, entry.getValue());
             }
         }
@@ -102,14 +107,14 @@ public class Mappings {
     }
 
     @Nullable
-    private Map<String, List<ProtocolIdMapping>> loadMappings(@Nullable JsonObject packets) {
+    private Map<String, List<T>> loadMappings(@Nullable JsonObject packets) {
         if (packets == null) {
             return null;
         }
-        final Map<String, List<ProtocolIdMapping>> mappings = new HashMap<>();
+        final Map<String, List<T>> mappings = new HashMap<>();
         for (String name : packets.keySet()) {
             final JsonObject packet = packets.getAsJsonObject(name);
-            final List<ProtocolIdMapping> list = new ArrayList<>();
+            final List<T> list = new ArrayList<>();
             for (String s : packet.keySet()) {
                 for (String ver : s.split("\\|")) {
                     String[] version = ver.split("-");
@@ -121,7 +126,7 @@ public class Mappings {
                     }
 
                     int id = packet.get(s).getAsInt();
-                    list.add(AbstractProtocolMapping.rangedIdMapping(start, end, id));
+                    list.add(supplier.get(start, end, id));
                     OneTimePack.log(3, "Added ranged mapping for " + name + ": " + start + ',' + end + ',' + id);
                 }
             }
@@ -179,5 +184,12 @@ public class Mappings {
             OneTimePack.log(1, "The file " + fileName + " doesn't have any configured URL");
         }
         return null;
+    }
+
+    @FunctionalInterface
+    public interface Supplier<T> {
+
+        @NotNull
+        T get(int start, int end, int id);
     }
 }

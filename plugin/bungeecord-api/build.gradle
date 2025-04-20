@@ -1,0 +1,19 @@
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    from(sourceSets.main.resources.srcDirs) {
+        include '**/*.yml'
+        expand(project.properties)
+    }
+}
+
+repositories {
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+}
+
+dependencies {
+    implementation project(':platform:platform-bungee')
+    implementation project(':module:module-bungee')
+    compileOnly(libs.bungeecord.api) {
+        exclude group: 'com.mojang'
+    }
+}

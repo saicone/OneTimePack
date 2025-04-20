@@ -1,0 +1,13 @@
+repositories {
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+}
+
+dependencies {
+    implementation project(':module:module-mappings')
+    compileOnly(libs.bungeecord.api) {
+        exclude group: 'com.mojang'
+    }
+    compileOnly(libs.bungeecord.protocol) {
+        exclude group: 'com.mojang'
+    }
+}

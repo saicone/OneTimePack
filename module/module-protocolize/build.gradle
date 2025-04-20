@@ -3,6 +3,7 @@ repositories {
 }
 
 dependencies {
+    implementation project(':module:module-mappings')
     compileOnly libs.protocolize.api
     compileOnly libs.netty.buffer
     compileOnly libs.gson

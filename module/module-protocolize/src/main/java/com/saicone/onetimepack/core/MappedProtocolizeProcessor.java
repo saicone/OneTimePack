@@ -9,6 +9,7 @@ import com.saicone.onetimepack.util.ValueComparator;
 import dev.simplix.protocolize.api.Direction;
 import dev.simplix.protocolize.api.PacketDirection;
 import dev.simplix.protocolize.api.Protocol;
+import dev.simplix.protocolize.api.mapping.AbstractProtocolMapping;
 import dev.simplix.protocolize.api.mapping.ProtocolIdMapping;
 import dev.simplix.protocolize.api.packet.AbstractPacket;
 import dev.simplix.protocolize.api.player.ProtocolizePlayer;
@@ -27,7 +28,7 @@ public class MappedProtocolizeProcessor<StartT> extends ProtocolizeProcessor<Sta
 
     @Override
     public void onLoad() {
-        final Mappings mappings = new Mappings(OneTimePack.get().getProvider().getPluginFolder(), "mappings.json");
+        final Mappings<ProtocolIdMapping> mappings = new Mappings<>(OneTimePack.get().getProvider().getPluginFolder(), "mappings.json", AbstractProtocolMapping::rangedIdMapping);
         mappings.load();
         register(mappings, "ResourcePackSend", ResourcePackPush::register);
         register(mappings, "ResourcePackRemove", ResourcePackPop::register);

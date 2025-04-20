@@ -5,6 +5,8 @@ include 'common'
 
 // Modules
 include(
+        'module:module-bungee',
+        'module:module-mappings',
         'module:module-packetevents',
         'module:module-protocolize',
         'module:module-velocity',
@@ -19,6 +21,7 @@ include(
 
 // Plugin types
 include(
+        'plugin:bungeecord-api',
         'plugin:bungeecord-packetevents',
         'plugin:bungeecord-protocolize',
         'plugin:velocity-api',
