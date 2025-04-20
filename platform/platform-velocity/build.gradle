@@ -1,3 +1,12 @@
+plugins {
+    alias libs.plugins.blossom
+}
+
+blossom {
+    replaceTokenIn('src/main/java/com/saicone/onetimepack/VelocityPlugin.java')
+    replaceToken '${version}', project.version
+}
+
 repositories {
     maven { url 'https://repo.papermc.io/repository/maven-public/' }
 }
